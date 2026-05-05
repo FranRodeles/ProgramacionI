@@ -1,3 +1,4 @@
-from django.shortcuts import render
+"""Keep core.views empty.
 
-# Create your views here.
+ViewSets live in core/viewsets for better separation.
+"""
