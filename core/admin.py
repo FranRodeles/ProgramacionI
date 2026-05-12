@@ -1,5 +1,7 @@
 from django.contrib import admin
-from core.models import User, QRCode, QRScanEvent, ShortUrl, ShortUrlClickEvent
+from core.models.user import User
+from core.models.qrcode import QRCode, QRScanEvent
+from core.models.shorturl import ShortUrl, ShortUrlClickEvent
 
 
 @admin.register(User)

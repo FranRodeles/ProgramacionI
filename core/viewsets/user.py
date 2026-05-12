@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 
-from core.models import User
+from core.models.user import User
 from core.serializers.user import UserSerializer, UserCreateSerializer
 
 

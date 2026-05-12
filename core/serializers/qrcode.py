@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.models import QRCode, QRScanEvent
+from core.models.qrcode import QRCode, QRScanEvent
 
 
 class QRCodeSerializer(serializers.ModelSerializer):
@@ -31,6 +31,7 @@ class QRCodeSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "user_username",
+            "qr_image_path",
         )
 
 

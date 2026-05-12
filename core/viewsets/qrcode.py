@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from core.models import QRCode
+from core.models.qrcode import QRCode
 from core.serializers.qrcode import QRCodeSerializer
 
 

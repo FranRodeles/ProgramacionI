@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from core.models import ShortUrl, ShortUrlClickEvent
+from core.models.shorturl import ShortUrl, ShortUrlClickEvent
 
 
 class ShortUrlSerializer(serializers.ModelSerializer):
