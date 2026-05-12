@@ -13,3 +13,6 @@ rpds-py==0.30.0
 sqlparse==0.5.5
 typing_extensions==4.15.0
 uritemplate==4.2.0
+psycopg2-binary==2.9.10
+python-dotenv==1.2.2
+django-allauth==0.63.3

@@ -1,2 +1,8 @@
 .venv
 user.txt
+.env
+AGENTS.md
+context_agent.md
+.github/
+__pycache__/
+*.pyc
