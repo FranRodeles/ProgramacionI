@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from core.models.qrcode import QRCode
 from core.serializers.qrcode import QRCodeSerializer
+from users.models import User
 from users.permissions import IsOwnerOrAdmin
 
 
@@ -16,7 +17,7 @@ class QRCodeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == "ADMIN":
+        if user.role == User.Role.ADMIN:
             return QRCode.objects.all().order_by("-created_at")
         return QRCode.objects.filter(user=user).order_by("-created_at")
 

@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from core.models.shorturl import ShortUrl
 from core.serializers.shorturl import ShortUrlSerializer
+from users.models import User
 from users.permissions import IsOwnerOrAdmin
 
 
@@ -16,7 +17,7 @@ class ShortUrlViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == "ADMIN":
+        if user.role == User.Role.ADMIN:
             return ShortUrl.objects.all().order_by("-created_at")
         return ShortUrl.objects.filter(user=user).order_by("-created_at")
 

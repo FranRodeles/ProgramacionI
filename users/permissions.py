@@ -1,11 +1,13 @@
 from rest_framework import permissions
 
+from users.models import User
+
 
 class IsAdmin(permissions.BasePermission):
     """Solo usuarios con role ADMIN pueden acceder."""
 
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == "ADMIN"
+        return request.user.is_authenticated and request.user.role == User.Role.ADMIN
 
 
 class IsOwnerOrAdmin(permissions.BasePermission):
@@ -16,4 +18,4 @@ class IsOwnerOrAdmin(permissions.BasePermission):
     """
 
     def has_object_permission(self, request, view, obj):
-        return obj.user == request.user or request.user.role == "ADMIN"
+        return obj.user == request.user or request.user.role == User.Role.ADMIN

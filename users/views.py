@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User
@@ -29,7 +30,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not user or not user.is_authenticated:
             return User.objects.none()
-        if user.role == "ADMIN":
+        if user.role == User.Role.ADMIN:
             return User.objects.all().order_by("-created_at")
         return User.objects.filter(pk=user.pk)
 
@@ -58,8 +59,8 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response({"detail": "Sesión cerrada exitosamente"})
-        except Exception as e:
+        except TokenError:
             return Response(
-                {"error": str(e)},
+                {"error": "Token inválido o ya fue revocado"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
