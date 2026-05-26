@@ -7,66 +7,120 @@ Plataforma web para gestionar códigos QR dinámicos y URLs cortas con estadíst
 - Dashboard de estadísticas por usuario
 
 ## Estructura del proyecto
-- **Backend**: Django 6.0.3 + Django REST Framework en `http://localhost:8000`
-- **Frontend**: React/Next.js esperado en `http://localhost:3000` (CORS ya configurado)
-- **Base de datos**: SQLite3
+- **QRedirect/**: Configuración del proyecto Django (settings, urls, wsgi/asgi)
+- **core/**: App principal con modelos QRCode, QRScanEvent, ShortUrl, ShortUrlClickEvent
+- **users/**: App de usuarios con modelo User (AbstractUser + role), autenticación y permisos
+- **Frontend**: React/Next.js esperado en `http://localhost:3000` (CORS configurado)
+- **Base de datos**: PostgreSQL (Programacion1) mediante `.env`
 
 ## Qué se ha hecho hasta ahora
 
 ### 1. Configuración Django
-- ✅ Proyecto scaffolding completado (estructura base lista)
-- ✅ Apps instaladas: `rest_framework`, `corsheaders`, `drf_spectacular`, `core`
-- ✅ CORS configurado: solo permite conexiones desde `http://localhost:3000`
-- ✅ Admin de Django funcional en `/admin/`
+- ✅ Proyecto scaffolding completado
+- ✅ PostgreSQL configurado vía variables de entorno (`.env`)
+- ✅ CORS configurado para `http://localhost:3000`
+- ✅ DRF configurado con paginación (page_size=20)
+- ✅ Swagger/OpenAPI en `/api/docs/`
+- ✅ django-allauth configurado para autenticación social
 
-### 2. Archivos de documentación
-- ✅ `README.md`: Especificación completa del proyecto (5 modelos, relaciones, funcionalidades)
-- ✅ `AGENTS.md`: Guía para futuros agentes (comandos, gotchas, order de implementación)
+### 2. App users (Paso 1 - Identidad)
+- ✅ App `users` creada separada de `core`
+- ✅ Modelo `User(AbstractUser)` con campo `role` (ADMIN / USER)
+- ✅ `AUTH_USER_MODEL = 'users.User'` en settings.py
+- ✅ Serializers: `UserSerializer` (lectura) + `UserCreateSerializer` (registro con password hasheada)
+- ✅ ViewSet con permisos: cualquiera crea, admin lista/borra, user ve solo su perfil
+- ✅ Admin de Django registrado con `BaseUserAdmin`
+- ✅ URLs en `/api/users/`
+
+### 3. Modelos del negocio (core/models/)
+- ✅ `QRCode` - slug único, destination_type (WEB/EMAIL/PHONE/WHATSAPP/MAP/TEXT), total_scans
+- ✅ `QRScanEvent` - evento de escaneo con IP, país, ciudad, dispositivo, OS, browser
+- ✅ `ShortUrl` - slug único, original_url, total_clicks
+- ✅ `ShortUrlClickEvent` - evento de clic (mismos campos analytics)
+- ✅ Todos con índices en slug y (user, created_at)
+- ✅ Migraciones aplicadas en PostgreSQL
+
+### 4. API REST (DRF)
+- ✅ Serializers para QRCode, QRScanEvent, ShortUrl, ShortUrlClickEvent
+- ✅ Viewsets con permisos de owner (solo dueño o admin pueden modificar/borrar)
+- ✅ URLs registradas: `/api/qr/`, `/api/shorturl/`
+- ✅ Filtro por usuario: cada user ve solo sus propios recursos (admin ve todos)
+
+### 5. Autenticación JWT (Paso 2)
+- ✅ `djangorestframework-simplejwt==5.5.1` instalado
+- ✅ `JWTAuthentication` como default en DRF
+- ✅ `POST /api/token/` → login devuelve access + refresh token
+- ✅ `POST /api/token/refresh/` → renovar access token
+- ✅ Access token: 30 min | Refresh token: 1 día
+- ✅ Header esperado: `Authorization: Bearer <token>`
+
+### 6. Control de Acceso (Paso 3 - RBAC)
+- ✅ `users/permissions.py` con:
+  - `IsAdmin` → solo usuarios con role=ADMIN
+  - `IsOwnerOrAdmin` → dueño del recurso o admin
+- ✅ Permisos por acción en cada ViewSet:
+  - QRCode/ShortUrl: list/create cualquiera auth, retrieve/update/delete solo owner o admin
+  - Users: create cualquiera, list/destroy solo admin, retrieve/update solo owner o admin
+
+### 7. Base de datos
+- ✅ PostgreSQL 16, BD: Programacion1
+- ✅ Usuario: programacion1
+- ✅ BD reseteada y migrada desde cero
+- ✅ Admin creado: admin / admin (role=ADMIN)
+- ✅ 21 tablas creadas (auth, users, core, allauth, socialaccount, etc.)
+
+### 8. Flujos de Usuario (Paso 4 - Registro, Perfil, Logout)
+- ✅ **Registro** (`POST /api/users/`): Cualquier persona puede crear una cuenta. El role se asigna como `USER` por defecto de forma forzada (el campo es read_only en el serializer). La password se hashea automáticamente con `set_password()`. Esto evita que un usuario malicioso se registre como ADMIN.
+- ✅ **Perfil** (`GET/PATCH /api/profile/`): El usuario autenticado puede ver y modificar sus propios datos (nombre, email, etc.). La lógica usa un `@action` personalizado en el ViewSet que devuelve el serializer del usuario autenticado. No se puede cambiar el role desde aquí.
+- ✅ **Logout** (`POST /api/logout/`): Invalida el refresh token agregándolo a la blacklist de SimpleJWT. Esto evita que un token robado pueda seguir usándose para renovar access tokens. Requiere `Authorization: Bearer <access_token>` y body `{"refresh": "<refresh_token>"}`.
+- ✅ **Blacklist activada**: Se agregó `rest_framework_simplejwt.token_blacklist` a INSTALLED_APPS y se migraron las tablas `token_blacklist_outstandingtoken` y `token_blacklist_blacklistedtoken`.
+
+### 9. Archivos de documentación
+- ✅ `README.md`: Especificación completa del proyecto
+- ✅ `AGENTS.md`: Guía técnica para desarrolladores
 - ✅ `context_agent.md`: Este archivo (resumen de progreso)
+- ✅ `.gitignore` actualizado con `user.txt`, `__pycache__/`, `*.pyc`
 
-### 3. .gitignore
-- ✅ Añadido `user.txt` a ignore
+## Endpoints disponibles
 
-## Qué FALTA por implementar
+| Método | Endpoint | Permiso | Descripción |
+|--------|----------|---------|-------------|
+| POST | `/api/token/` | Público | Login (JWT) |
+| POST | `/api/token/refresh/` | Público | Renovar access token |
+| POST | `/api/users/` | Público | Registrarse (role=USER fijo) |
+| GET | `/api/users/` | ADMIN | Listar usuarios |
+| GET/PUT | `/api/users/{id}/` | Owner o ADMIN | Ver/editar perfil por ID |
+| DELETE | `/api/users/{id}/` | ADMIN | Eliminar usuario |
+| GET/PATCH | `/api/profile/` | Autenticado | Ver/editar perfil propio |
+| POST | `/api/logout/` | Autenticado | Cerrar sesión (blacklist refresh token) |
+| GET | `/api/qr/` | Autenticado | Listar QRs propios |
+| POST | `/api/qr/` | Autenticado | Crear QR |
+| GET/PUT/DELETE | `/api/qr/{id}/` | Owner o ADMIN | Ver/editar/borrar QR |
+| GET | `/api/shorturl/` | Autenticado | Listar URLs cortas |
+| POST | `/api/shorturl/` | Autenticado | Crear URL corta |
+| GET/PUT/DELETE | `/api/shorturl/{id}/` | Owner o ADMIN | Ver/editar/borrar |
+| GET | `/api/docs/` | Público | Swagger UI |
+| GET | `/api/schema/` | Público | OpenAPI schema |
 
-### Modelos (core/models.py) - VACÍO
-Necesita implementarse en este orden:
-1. User (id, name, email, password_hash, created_at, updated_at)
-2. QRCode (id, user_id, name, slug, destination_type, destination_value, is_active, qr_image_path, total_scans, created_at, updated_at)
-3. QRScanEvent (id, qr_code_id, scanned_at, ip_address, country, city, device_type, os, browser, user_agent)
-4. ShortUrl (id, user_id, name, slug, original_url, total_clicks, is_active, created_at, updated_at)
-5. ShortUrlClickEvent (id, short_url_id, clicked_at, ip_address, country, city, device_type, os, browser, user_agent)
+## Roles del sistema
 
-### Vistas (core/views.py) - VACÍO
-- Serializers para cada modelo
-- ViewSets para CRUD
-- Lógica de redirección y registro de eventos
+| Rol | Puede |
+|-----|-------|
+| **ADMIN** | CRUD cualquier recurso, listar/borrar usuarios, ver todo |
+| **USER** | Crear y gestionar sus propios QRs y URLs cortas, ver su perfil |
 
-### URLs (QRedirect/urls.py) - SOLO /admin/
-- `/q/{slug}/` → Redirigir QR y registrar escaneo
-- `/s/{slug}/` → Redirigir URL corta y registrar clic
-- `/api/qr/` → CRUD de QRs
-- `/api/short-url/` → CRUD de URLs cortas
-- Endpoints de autenticación
+## ¿Por qué JWT en vez de sesiones tradicionales?
 
-### DRF + Swagger
-- Configurar en settings.py
-- Documentación auto-generada en `/api/schema/`
+JWT es stateless: el servidor firma un token y no necesita almacenar la sesión en BD/memoria. Esto escala horizontalmente sin esfuerzo — cualquier instancia del backend puede validar el token con solo conocer la clave de firma. En QRedirect, donde los QRs pueden recibir millones de escaneos, la autenticación no debe ser un cuello de botella. Las sesiones tradicionales requieren consultar una base de datos o Redis en cada request, lo que agrega latencia y complejidad operativa.
 
-## Notas importantes
-- **Typo preservado**: `requeriments.txt` (no `requirements.txt`)
-- **Seguridad dev-only**: SECRET_KEY hardcoded, DEBUG=True, ALLOWED_HOSTS vacío (solo para desarrollo)
-- **Slugs**: Deben ser URL-safe y únicos (`abc123`)
-- **Migraciones**: Siempre hacer `makemigrations` → `migrate` después de cambios en modelos
-
-## Próximos pasos
-1. Implementar modelos en `core/models.py`
-2. Crear migraciones y ejecutarlas
-3. Implementar serializers y viewsets
-4. Añadir rutas a `urls.py`
-5. Implementar lógica de redirección y registro de eventos
+## Próximos pasos sugeridos
+1. Lógica de redirección: `/q/{slug}/` → redirigir y registrar QRScanEvent
+2. Lógica de redirección: `/s/{slug}/` → redirigir y registrar ShortUrlClickEvent
+3. Dashboard con estadísticas por usuario
+4. Tests automatizados
+5. Frontend React/Next.js
 
 ---
-**Estado**: En scaffolding, listo para implementar lógica de negocio
-**Rama**: tp1
-**Última actividad**: Configuración de Django y documentación
+**Estado**: Modelos, API, autenticación JWT, permisos RBAC y flujos de usuario completos
+**Rama**: feature/users-app
+**Última actividad**: Paso 4 - Flujos de Usuario (Registro, Perfil, Logout)
