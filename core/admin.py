@@ -1,16 +1,6 @@
 from django.contrib import admin
-from core.models.user import User
 from core.models.qrcode import QRCode, QRScanEvent
 from core.models.shorturl import ShortUrl, ShortUrlClickEvent
-
-
-@admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    """Admin para User (hereda de AbstractUser)."""
-    list_display = ('username', 'email', 'is_staff', 'created_at')
-    list_filter = ('is_active', 'is_staff', 'created_at')
-    search_fields = ('username', 'email')
-    ordering = ('-created_at',)
 
 
 @admin.register(QRCode)

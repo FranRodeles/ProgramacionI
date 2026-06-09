@@ -1,11 +1,8 @@
 from rest_framework import serializers
-
-from core.models.user import User
+from users.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer de lectura para usuarios."""
-
     class Meta:
         model = User
         fields = (
@@ -14,6 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "email",
+            "role",
             "is_active",
             "is_staff",
             "created_at",
@@ -29,8 +27,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Serializer de creación de usuarios con password hasheada."""
-
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
@@ -42,10 +38,11 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "last_name",
             "email",
             "password",
+            "role",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = ("id", "role", "created_at", "updated_at")
 
     def create(self, validated_data):
         password = validated_data.pop("password")

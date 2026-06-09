@@ -16,3 +16,4 @@ uritemplate==4.2.0
 psycopg2-binary==2.9.10
 python-dotenv==1.2.2
 django-allauth==0.63.3
+djangorestframework-simplejwt==5.5.1
