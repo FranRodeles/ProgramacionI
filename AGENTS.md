@@ -62,7 +62,7 @@ python manage.py createsuperuser
 
 Per README.md, implement these models in `core/models.py` in order:
 1. **User** → id, name, email, password_hash, created_at, updated_at
-2. **QRCode** → id, user_id, name, slug (unique), destination_type (choices: WEB, EMAIL, PHONE, WHATSAPP, MAP, TEXT), destination_value, is_active, qr_image_path, total_scans, created_at, updated_at
+2. **QRCode** → id, user_id, name, slug (unique), destination_type (choices: WEB, EMAIL, PHONE, WHATSAPP, MAP, TEXT), destination_value, is_active, total_scans, created_at, updated_at
 3. **QRScanEvent** → id, qr_code_id, scanned_at, ip_address, country, city, device_type, os, browser, user_agent
 4. **ShortUrl** → id, user_id, name, slug (unique), original_url, total_clicks, is_active, created_at, updated_at
 5. **ShortUrlClickEvent** → id, short_url_id, clicked_at, ip_address, country, city, device_type, os, browser, user_agent
@@ -71,7 +71,7 @@ Key constraint: `slug` fields must be URL-safe unique identifiers (e.g., `abc123
 
 ## URL Routing
 
-**Current state**: `QRedirect/urls.py` only has `/admin/`. 
+**Current state**: user auth endpoints, QR/ShortUrl CRUD, Swagger y redirect de QR `/q/{slug}/` ya están registrados.
 
 Add API endpoints pattern (to be implemented):
 - QR CRUD: `/api/qr/`, `/api/qr/{id}/`

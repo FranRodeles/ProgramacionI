@@ -91,7 +91,6 @@ Representa un código QR creado por un usuario.
 - destination_type
 - destination_value
 - is_active
-- qr_image_path
 - total_scans
 - created_at
 - updated_at
@@ -111,6 +110,7 @@ Representa un código QR creado por un usuario.
   - Si es email: un mail o una estructura más completa
   - Si es teléfono: un número
   - etc.
+- El PNG del QR no se guarda en la base: se genera al vuelo a partir de la URL pública `/q/{slug}/`.
 
 ---
 

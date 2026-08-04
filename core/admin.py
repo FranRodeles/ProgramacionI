@@ -21,13 +21,12 @@ class QRCodeAdmin(admin.ModelAdmin):
         ('Destino', {
             'fields': ('destination_type', 'destination_value')
         }),
-        ('Imagen y Estadísticas', {
-            'fields': ('qr_image_path', 'total_scans')
+        ('Estadísticas', {
+            'fields': ('total_scans',)
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
-
 
