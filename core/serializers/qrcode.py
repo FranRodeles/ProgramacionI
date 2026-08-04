@@ -1,12 +1,15 @@
 from rest_framework import serializers
 
 from core.models.qrcode import QRCode, QRScanEvent
+from core.qr_utils import build_qr_redirect_path
 
 
 class QRCodeSerializer(serializers.ModelSerializer):
     """Serializer para CRUD de codigos QR."""
 
     user_username = serializers.CharField(source="user.username", read_only=True)
+    qr_redirect_url = serializers.SerializerMethodField()
+    qr_image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = QRCode
@@ -19,7 +22,8 @@ class QRCodeSerializer(serializers.ModelSerializer):
             "destination_type",
             "destination_value",
             "is_active",
-            "qr_image_path",
+            "qr_redirect_url",
+            "qr_image_url",
             "total_scans",
             "created_at",
             "updated_at",
@@ -31,8 +35,21 @@ class QRCodeSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "user_username",
-            "qr_image_path",
         )
+
+    def get_qr_redirect_url(self, obj):
+        request = self.context.get("request")
+        path = build_qr_redirect_path(obj)
+        if request is None:
+            return path
+        return request.build_absolute_uri(path)
+
+    def get_qr_image_url(self, obj):
+        request = self.context.get("request")
+        path = reverse("qr-image", kwargs={"pk": obj.pk})
+        if request is None:
+            return path
+        return request.build_absolute_uri(path)
 
 
 class QRScanEventSerializer(serializers.ModelSerializer):

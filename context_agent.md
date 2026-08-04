@@ -39,12 +39,15 @@ Plataforma web para gestionar códigos QR dinámicos y URLs cortas con estadíst
 - ✅ `ShortUrlClickEvent` - evento de clic (mismos campos analytics)
 - ✅ Todos con índices en slug y (user, created_at)
 - ✅ Migraciones aplicadas en PostgreSQL
+- ✅ `qr_image_path` eliminado: el QR ya no depende de archivos ni rutas guardadas en disco
 
 ### 4. API REST (DRF)
 - ✅ Serializers para QRCode, QRScanEvent, ShortUrl, ShortUrlClickEvent
 - ✅ Viewsets con permisos de owner (solo dueño o admin pueden modificar/borrar)
 - ✅ URLs registradas: `/api/qr/`, `/api/shorturl/`
 - ✅ Filtro por usuario: cada user ve solo sus propios recursos (admin ve todos)
+- ✅ Nuevo endpoint `GET /api/qr/{id}/image/` que devuelve el PNG del QR generado al vuelo
+- ✅ El serializer de QR expone `qr_redirect_url` y `qr_image_url` en vez de una ruta de archivo
 
 ### 5. Autenticación JWT (Paso 2)
 - ✅ `djangorestframework-simplejwt==5.5.1` instalado
@@ -69,13 +72,21 @@ Plataforma web para gestionar códigos QR dinámicos y URLs cortas con estadíst
 - ✅ Admin creado: admin / admin (role=ADMIN)
 - ✅ 21 tablas creadas (auth, users, core, allauth, socialaccount, etc.)
 
-### 8. Flujos de Usuario (Paso 4 - Registro, Perfil, Logout)
+### 8. QR dinámico generado al vuelo
+- ✅ El QR no se almacena como imagen ni como binario en la base de datos
+- ✅ El backend genera el PNG en cada request a partir de la URL pública `/q/{slug}/`
+- ✅ Esto evita duplicar datos derivados, reduce el tamaño de la base y mantiene estable el mismo QR mientras el `slug` no cambie
+- ✅ Si cambia `destination_value`, el QR sigue siendo válido porque el contenido codificado apunta al redirect dinámico del backend
+- ✅ Si cambia el `slug`, el QR cambia, porque cambia la URL pública codificada
+- ✅ Se implementó `GET /q/{slug}/` para registrar el escaneo, incrementar `total_scans` y redirigir al destino final
+
+### 9. Flujos de Usuario (Paso 4 - Registro, Perfil, Logout)
 - ✅ **Registro** (`POST /api/users/`): Cualquier persona puede crear una cuenta. El role se asigna como `USER` por defecto de forma forzada (el campo es read_only en el serializer). La password se hashea automáticamente con `set_password()`. Esto evita que un usuario malicioso se registre como ADMIN.
 - ✅ **Perfil** (`GET/PATCH /api/profile/`): El usuario autenticado puede ver y modificar sus propios datos (nombre, email, etc.). La lógica usa un `@action` personalizado en el ViewSet que devuelve el serializer del usuario autenticado. No se puede cambiar el role desde aquí.
 - ✅ **Logout** (`POST /api/logout/`): Invalida el refresh token agregándolo a la blacklist de SimpleJWT. Esto evita que un token robado pueda seguir usándose para renovar access tokens. Requiere `Authorization: Bearer <access_token>` y body `{"refresh": "<refresh_token>"}`.
 - ✅ **Blacklist activada**: Se agregó `rest_framework_simplejwt.token_blacklist` a INSTALLED_APPS y se migraron las tablas `token_blacklist_outstandingtoken` y `token_blacklist_blacklistedtoken`.
 
-### 9. Archivos de documentación
+### 10. Archivos de documentación
 - ✅ `README.md`: Especificación completa del proyecto
 - ✅ `AGENTS.md`: Guía técnica para desarrolladores
 - ✅ `context_agent.md`: Este archivo (resumen de progreso)
@@ -95,7 +106,9 @@ Plataforma web para gestionar códigos QR dinámicos y URLs cortas con estadíst
 | POST | `/api/logout/` | Autenticado | Cerrar sesión (blacklist refresh token) |
 | GET | `/api/qr/` | Autenticado | Listar QRs propios |
 | POST | `/api/qr/` | Autenticado | Crear QR |
+| GET | `/api/qr/{id}/image/` | Owner o ADMIN | Descargar/ver PNG del QR |
 | GET/PUT/DELETE | `/api/qr/{id}/` | Owner o ADMIN | Ver/editar/borrar QR |
+| GET | `/q/{slug}/` | Público | Registrar escaneo y redirigir destino del QR |
 | GET | `/api/shorturl/` | Autenticado | Listar URLs cortas |
 | POST | `/api/shorturl/` | Autenticado | Crear URL corta |
 | GET/PUT/DELETE | `/api/shorturl/{id}/` | Owner o ADMIN | Ver/editar/borrar |
@@ -114,13 +127,12 @@ Plataforma web para gestionar códigos QR dinámicos y URLs cortas con estadíst
 JWT es stateless: el servidor firma un token y no necesita almacenar la sesión en BD/memoria. Esto escala horizontalmente sin esfuerzo — cualquier instancia del backend puede validar el token con solo conocer la clave de firma. En QRedirect, donde los QRs pueden recibir millones de escaneos, la autenticación no debe ser un cuello de botella. Las sesiones tradicionales requieren consultar una base de datos o Redis en cada request, lo que agrega latencia y complejidad operativa.
 
 ## Próximos pasos sugeridos
-1. Lógica de redirección: `/q/{slug}/` → redirigir y registrar QRScanEvent
-2. Lógica de redirección: `/s/{slug}/` → redirigir y registrar ShortUrlClickEvent
-3. Dashboard con estadísticas por usuario
-4. Tests automatizados
-5. Frontend React/Next.js
+1. Lógica de redirección: `/s/{slug}/` → redirigir y registrar ShortUrlClickEvent
+2. Dashboard con estadísticas por usuario
+3. Tests automatizados
+4. Frontend React/Next.js
 
 ---
-**Estado**: Modelos, API, autenticación JWT, permisos RBAC y flujos de usuario completos
-**Rama**: feature/users-app
-**Última actividad**: Paso 4 - Flujos de Usuario (Registro, Perfil, Logout)
+**Estado**: Modelos, API, autenticación JWT, permisos RBAC, flujos de usuario y QR dinámico al vuelo
+**Rama**: TP4
+**Última actividad**: Refactor QR sin archivo persistido + redirect público `/q/{slug}/`

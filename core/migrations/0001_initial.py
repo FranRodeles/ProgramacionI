@@ -23,7 +23,6 @@ class Migration(migrations.Migration):
                 ('destination_type', models.CharField(choices=[('WEB', 'Website'), ('EMAIL', 'Email'), ('PHONE', 'Phone'), ('WHATSAPP', 'WhatsApp'), ('MAP', 'Map'), ('TEXT', 'Text')], max_length=10)),
                 ('destination_value', models.TextField()),
                 ('is_active', models.BooleanField(default=True)),
-                ('qr_image_path', models.CharField(blank=True, max_length=500)),
                 ('total_scans', models.IntegerField(default=0)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),

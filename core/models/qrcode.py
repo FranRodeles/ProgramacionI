@@ -34,7 +34,6 @@ class QRCode(models.Model):
     destination_type = models.CharField(max_length=10, choices=DESTINATION_TYPES)
     destination_value = models.TextField()
     is_active = models.BooleanField(default=True)
-    qr_image_path = models.CharField(max_length=500, blank=True)
     total_scans = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
