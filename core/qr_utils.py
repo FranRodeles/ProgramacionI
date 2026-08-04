@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from urllib.parse import quote
 
@@ -46,11 +47,17 @@ def resolve_qr_destination(qr_code):
     if qr_code.destination_type == "WHATSAPP":
         if value.startswith(("http://", "https://")):
             return value
-        return f"https://wa.me/{value}"
+        digits = re.sub(r"[^\d]", "", value)
+        if not digits:
+            raise ValueError("Número de WhatsApp inválido")
+        return f"https://wa.me/{digits}"
 
     if qr_code.destination_type == "MAP":
         if value.startswith(("http://", "https://")):
             return value
         return f"https://www.google.com/maps/search/?api=1&query={quote(value)}"
 
-    return None
+    if qr_code.destination_type == "TEXT":
+        return None
+
+    raise ValueError(f"Tipo de destino no soportado: {qr_code.destination_type}")

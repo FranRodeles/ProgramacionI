@@ -46,7 +46,7 @@ class QRCodeSerializer(serializers.ModelSerializer):
 
     def get_qr_image_url(self, obj):
         request = self.context.get("request")
-        path = f"/api/qr/{obj.pk}/image/"
+        path = reverse("qr-image", kwargs={"pk": obj.pk})
         if request is None:
             return path
         return request.build_absolute_uri(path)
