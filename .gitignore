@@ -6,3 +6,5 @@ context_agent.md
 .github/
 __pycache__/
 *.pyc
+.opencode/
+openspec/
