@@ -1,157 +1,51 @@
-import { useEffect, useRef } from 'react'
-import '../styles/animations.css'
+const steps = [
+  ['bi-qr-code', 'Crea tu QR', 'Genera tu código en segundos'],
+  ['bi-link-45deg', 'Personalízalo', 'Dale tu toque personal y hazlo único'],
+  ['bi-bar-chart', 'Analiza resultados', 'Obtén estadísticas en tiempo real'],
+  ['bi-arrow-repeat', 'Cambia el destino', 'Puedes cambiar el destino en cualquier momento'],
+]
 
 function HowItWorks() {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const linesRef = useRef<SVGSVGElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && linesRef.current) {
-            const lines = linesRef.current.querySelectorAll('.draw-line')
-            lines.forEach((line, index) => {
-              setTimeout(() => {
-                line.classList.add('animate')
-              }, index * 300)
-            })
-          }
-        })
-      },
-      { threshold: 0.3 }
-    )
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [])
-
-  const steps = [
-    {
-      number: 1,
-      icon: 'bi-qr-code',
-      title: 'Crea tu QR',
-      description: 'Genera tu código en segundos'
-    },
-    {
-      number: 2,
-      icon: 'bi-link-45deg',
-      title: 'Personalízalo',
-      description: 'Dale tu toque personal y hazlo único'
-    },
-    {
-      number: 3,
-      icon: 'bi-bar-chart',
-      title: 'Analiza resultados',
-      description: 'Obtén estadísticas en tiempo real'
-    },
-    {
-      number: 4,
-      icon: 'bi-arrow-repeat',
-      title: 'Cambia el destino',
-      description: 'Puedes cambiar el destino en cualquier momento'
-    }
-  ]
-
   return (
-    <section ref={sectionRef} className="py-5" style={{ backgroundColor: '#fff' }}>
+    <section id="caracteristicas" className="how-it-works-section py-5">
       <div className="container">
         <div className="text-center mb-5">
-          <h2 className="display-5 fw-bold mb-3">
-            <span style={{ color: '#4A5D23' }}>🌿</span>{' '}
-            Así de fácil{' '}
-            <span style={{ color: '#4A5D23' }}>🌿</span>
+          <h2 className="section-title display-5 fw-bold mb-3">
+            <i className="bi bi-leaf-fill section-leaf" /> Así de fácil <i className="bi bi-leaf-fill section-leaf section-leaf-right" />
           </h2>
         </div>
-        
-        <div className="row g-4 position-relative">
-          {/* SVG para hilos curvos animados */}
-          <svg 
-            ref={linesRef}
-            className="d-none d-lg-block position-absolute" 
-            style={{ 
-              top: '50%', 
-              left: '12%', 
-              right: '12%', 
-              height: '40px',
-              width: '76%',
-              zIndex: 0,
-              overflow: 'visible'
-            }}
-          >
-            {/* Hilo 1-2 */}
-            <path 
-              className="draw-line"
-              d="M 0 20 Q 100 0, 200 20" 
-              fill="none" 
-              stroke="#4A5D23" 
-              strokeWidth="2"
-            />
-            {/* Hilo 2-3 */}
-            <path 
-              className="draw-line"
-              d="M 200 20 Q 300 40, 400 20" 
-              fill="none" 
-              stroke="#4A5D23" 
-              strokeWidth="2"
-            />
-            {/* Hilo 3-4 */}
-            <path 
-              className="draw-line"
-              d="M 400 20 Q 500 0, 600 20" 
-              fill="none" 
-              stroke="#4A5D23" 
-              strokeWidth="2"
-            />
+        <div className="steps-row row g-4 position-relative">
+          <svg className="connection-lines d-none d-lg-block position-absolute" viewBox="0 0 1000 140" preserveAspectRatio="none" aria-hidden="true">
+            <path className="connection-base" d="M 160 52 C 180 4 218 4 230 52 C 242 100 280 100 300 52" />
+            <path className="connection-base" d="M 460 52 C 472 24 488 24 500 52 C 512 80 528 80 540 52" />
+            <path className="connection-base" d="M 700 52 C 720 4 748 4 760 52 C 772 100 820 100 840 52" />
+            <circle className="connection-node" cx="160" cy="52" r="4" />
+            <circle className="connection-node" cx="300" cy="52" r="4" />
+            <circle className="connection-node" cx="460" cy="52" r="4" />
+            <circle className="connection-node" cx="540" cy="52" r="4" />
+            <circle className="connection-node" cx="700" cy="52" r="4" />
+            <circle className="connection-node" cx="840" cy="52" r="4" />
+            <circle className="thread-runner" r="5">
+              <animateMotion dur="8.4s" repeatCount="indefinite" calcMode="linear" keyPoints="0;1;1;1" keyTimes="0;.31;.32;1" path="M 160 52 C 180 4 218 4 230 52 C 242 100 280 100 300 52" />
+              <animate attributeName="opacity" dur="8.4s" repeatCount="indefinite" values="1;1;0;0" keyTimes="0;.31;.32;1" />
+            </circle>
+            <circle className="thread-runner" r="5">
+              <animateMotion dur="8.4s" repeatCount="indefinite" calcMode="linear" keyPoints="0;0;1;1;1" keyTimes="0;.333;.643;.653;1" path="M 460 52 C 472 24 488 24 500 52 C 512 80 528 80 540 52" />
+              <animate attributeName="opacity" dur="8.4s" repeatCount="indefinite" values="0;0;1;1;0;0" keyTimes="0;.323;.333;.643;.653;1" />
+            </circle>
+            <circle className="thread-runner" r="5">
+              <animateMotion dur="8.4s" repeatCount="indefinite" calcMode="linear" keyPoints="0;0;0;1;1" keyTimes="0;.666;.676;.976;1" path="M 700 52 C 720 4 748 4 760 52 C 772 100 820 100 840 52" />
+              <animate attributeName="opacity" dur="8.4s" repeatCount="indefinite" values="0;0;1;1;0" keyTimes="0;.656;.666;.976;1" />
+            </circle>
           </svg>
-          
-          {steps.map((step) => (
-            <div key={step.number} className="col-6 col-lg-3">
-              <div 
-                className="card h-100 border-0 shadow-sm text-center position-relative"
-                style={{ 
-                  borderRadius: '15px',
-                  backgroundColor: '#fff',
-                  zIndex: 1
-                }}
-              >
+          {steps.map(([icon, title, description], index) => (
+            <div key={title} className={`step-column step-column-${index + 1} col-6 col-lg-3`}>
+              <div className="how-card h-100 card border-0 text-center position-relative">
                 <div className="card-body p-4">
-                  {/* Número */}
-                  <div 
-                    className="mb-3"
-                    style={{ 
-                      fontSize: '2.5rem', 
-                      fontWeight: 'bold',
-                      color: '#C5CEB8'
-                    }}
-                  >
-                    {step.number}
-                  </div>
-                  
-                  {/* Ícono */}
-                  <div 
-                    className="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
-                    style={{ 
-                      width: '60px', 
-                      height: '60px', 
-                      backgroundColor: '#E8E5DE'
-                    }}
-                  >
-                    <i className={`bi ${step.icon}`} style={{ fontSize: '1.5rem', color: '#4A5D23' }}></i>
-                  </div>
-                  
-                  {/* Título */}
-                  <h5 className="card-title fw-bold" style={{ color: '#333' }}>
-                    {step.title}
-                  </h5>
-                  
-                  {/* Descripción */}
-                  <p className="card-text" style={{ color: '#666', fontSize: '0.9rem' }}>
-                    {step.description}
-                  </p>
+                  <div className="step-number mb-3">{index + 1}</div>
+                  <div className="step-icon rounded-circle d-inline-flex align-items-center justify-content-center mb-3"><i className={`bi ${icon}`} /></div>
+                  <h5 className="card-title fw-bold">{title}</h5>
+                  <p className="card-text">{description}</p>
                 </div>
               </div>
             </div>

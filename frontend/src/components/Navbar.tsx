@@ -1,49 +1,32 @@
+import { useState } from 'react'
+
 function Navbar() {
+  const [isOpen, setIsOpen] = useState(false)
+
   return (
-    <nav className="navbar navbar-expand-lg" style={{ backgroundColor: '#4A5D23' }}>
+    <nav className="navbar qredirect-navbar">
       <div className="container">
-        <span className="navbar-brand d-flex align-items-center">
-          <img src="/logo.png" alt="QRedirect" height="30" className="me-2" />
-          <span className="text-white fw-bold fs-4" style={{ color: '#fff' }}>QREDIRECT</span>
-        </span>
-        
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
+        <a className="navbar-brand qredirect-brand" href="#inicio" aria-label="QRedirect, inicio">
+          <img src="/logo_sin_fondo.png" alt="QRedirect" className="qredirect-logo" />
+        </a>
+        <button className="navbar-toggler" type="button" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen} aria-label="Abrir menú">
+          <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-list'}`} />
         </button>
-        
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav mx-auto">
-            <li className="nav-item">
-              <span className="nav-link text-white" style={{ cursor: 'default' }}>Inicio</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-white" style={{ cursor: 'default' }}>Crear QR</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-white" style={{ cursor: 'default' }}>Acortar link</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-white" style={{ cursor: 'default' }}>Características</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-white" style={{ cursor: 'default' }}>Precios</span>
-            </li>
-            <li className="nav-item">
-              <span className="nav-link text-white" style={{ cursor: 'default' }}>Contacto</span>
-            </li>
+        <div className={`qredirect-collapse ${isOpen ? 'show' : ''}`}>
+          <ul className="navbar-nav me-auto qredirect-nav-links">
+            {['Inicio', 'Crear QR', 'Acortar link', 'Características', 'Precios'].map((label, index) => (
+              <li className="nav-item" key={label}>
+                <a className={`nav-link ${index === 0 ? 'active' : ''}`} href={index === 0 ? '#inicio' : '#caracteristicas'} onClick={() => setIsOpen(false)}>{label}</a>
+              </li>
+            ))}
           </ul>
-          
-          <span className="btn" style={{ backgroundColor: '#C5CEB8', color: '#2D3A1C', cursor: 'default' }}>
-            Crear mi primer QR <i className="bi bi-arrow-right"></i>
-          </span>
+          <div className="qredirect-nav-actions">
+            <a className="btn qredirect-nav-cta" href="#crear-qr" onClick={() => setIsOpen(false)}>
+              Crear mi primer QR <i className="bi bi-arrow-right" />
+            </a>
+            <a className="qredirect-login-link" href="#iniciar-sesion" onClick={() => setIsOpen(false)}>Iniciar sesión</a>
+            <a className="qredirect-register-link" href="#registrarse" onClick={() => setIsOpen(false)}>Registrarse</a>
+          </div>
         </div>
       </div>
     </nav>

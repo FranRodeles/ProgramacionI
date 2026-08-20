@@ -1,6 +1,6 @@
 function Footer() {
   return (
-    <footer className="py-4" style={{ backgroundColor: '#2D3A1C' }}>
+    <footer id="contacto" className="qredirect-footer py-4">
       <div className="container">
         <div className="text-center">
           <small style={{ color: '#9CA3AF' }}>
