@@ -1,9 +1,7 @@
+import Home from './views/Home'
+
 function App() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <h1 className="text-2xl font-bold p-4">QRedirect</h1>
-    </div>
-  )
+  return <Home />
 }
 
 export default App
