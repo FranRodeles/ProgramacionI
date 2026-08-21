@@ -1,14 +1,5 @@
 import '../styles/animations.css'
-
-const qrCells = Array.from({ length: 441 }, (_, index) => {
-  const row = Math.floor(index / 21)
-  const column = index % 21
-  const isFinderArea = (startRow: number, startColumn: number) =>
-    row >= startRow && row < startRow + 7 && column >= startColumn && column < startColumn + 7
-
-  if (isFinderArea(0, 0) || isFinderArea(0, 14) || isFinderArea(14, 0)) return false
-  return (row * 7 + column * 11 + row * column) % 5 < 2
-})
+import { qrCells } from '../utils/decorativeQr'
 
 function DecorativeQr() {
   return (

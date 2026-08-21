@@ -79,10 +79,9 @@ body { margin: 0; min-width: 320px; background: #f7f5f0; }
 .step-column-4 .how-card { --card-rotation: 2deg; }
 .how-card:hover { box-shadow: 0 1rem 2rem rgba(46,59,37,.17); transform: translateY(-.35rem) rotate(0deg); }
 .how-card { animation: cardFade .7s ease both; }
-.how-card:nth-child(5) { animation-delay: .15s; }
-.how-card:nth-child(6) { animation-delay: .3s; }
-.how-card:nth-child(7) { animation-delay: .45s; }
-.how-card:nth-child(8) { animation-delay: .6s; }
+.step-column-2 .how-card { animation-delay: .15s; }
+.step-column-3 .how-card { animation-delay: .3s; }
+.step-column-4 .how-card { animation-delay: .45s; }
 .step-number { color: #a7b79a; font-size: 2.5rem; font-weight: 800; }
 .step-icon { width: 60px; height: 60px; background: #e8e5de; color: #526b42; font-size: 1.5rem; }
 .how-card .card-title { color: #333; }
