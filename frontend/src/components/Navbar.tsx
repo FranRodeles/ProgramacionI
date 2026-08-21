@@ -1,14 +1,22 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../context/useAuth'
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const { user, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    setIsOpen(false)
+  }
 
   return (
     <nav className="navbar qredirect-navbar">
       <div className="container">
-        <a className="navbar-brand qredirect-brand" href="#inicio" aria-label="QRedirect, inicio">
+        <Link className="navbar-brand qredirect-brand" to="/" aria-label="QRedirect, inicio">
           <img src="/logo_sin_fondo.png" alt="QRedirect" className="qredirect-logo" />
-        </a>
+        </Link>
         <button className="navbar-toggler" type="button" onClick={() => setIsOpen(!isOpen)} aria-expanded={isOpen} aria-label="Abrir menú">
           <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-list'}`} />
         </button>
@@ -21,11 +29,22 @@ function Navbar() {
             ))}
           </ul>
           <div className="qredirect-nav-actions">
-            <a className="btn qredirect-nav-cta" href="#crear-qr" onClick={() => setIsOpen(false)}>
-              Crear mi primer QR <i className="bi bi-arrow-right" />
-            </a>
-            <a className="qredirect-login-link" href="#iniciar-sesion" onClick={() => setIsOpen(false)}>Iniciar sesión</a>
-            <a className="qredirect-register-link" href="#registrarse" onClick={() => setIsOpen(false)}>Registrarse</a>
+            {user ? (
+              <>
+                <span className="qredirect-user-name"><i className="bi bi-person-circle me-1" />{user.name}</span>
+                <button className="btn qredirect-nav-cta" type="button" onClick={handleLogout}>
+                  Cerrar sesión <i className="bi bi-box-arrow-right ms-1" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link className="btn qredirect-nav-cta" to="/register" onClick={() => setIsOpen(false)}>
+                  Crear mi primer QR <i className="bi bi-arrow-right" />
+                </Link>
+                <Link className="qredirect-login-link" to="/login" onClick={() => setIsOpen(false)}>Iniciar sesión</Link>
+                <Link className="qredirect-register-link" to="/register" onClick={() => setIsOpen(false)}>Registrarse</Link>
+              </>
+            )}
           </div>
         </div>
       </div>
