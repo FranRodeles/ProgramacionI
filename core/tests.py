@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from rest_framework.test import APIClient
 
 from core.models.qrcode import QRCode, QRScanEvent
+from core.models.shorturl import ShortUrl, ShortUrlClickEvent
 from users.models import User
 
 
@@ -145,3 +146,73 @@ class QRSerializerDestinationTest(TestCase):
         qr = self._make_qr("INVALID", "some value")
         with self.assertRaises(ValueError):
             resolve_qr_destination(qr)
+
+
+class QRCodeSerializerTest(TestCase):
+    """Tests para la serialización de un QRCode.
+
+    Detecta el bug de `reverse` no importado en `get_qr_image_url`.
+    """
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner", password="Test123456"
+        )
+        self.qr = QRCode.objects.create(
+            user=self.owner,
+            name="Test QR",
+            slug="test-serialize",
+            destination_type="WEB",
+            destination_value="https://example.com",
+        )
+
+    def test_serializer_returns_qr_image_url(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        data = QRCodeSerializer(self.qr).data
+        self.assertIn(f"/api/qr/{self.qr.pk}/image/", data["qr_image_url"])
+
+    def test_serializer_returns_qr_redirect_url(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        data = QRCodeSerializer(self.qr).data
+        self.assertEqual(data["qr_redirect_url"], f"/q/{self.qr.slug}/")
+
+
+class ShortUrlRedirectTest(TestCase):
+    """Tests para GET /s/{slug}/"""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="owner", password="Test123456"
+        )
+        self.short = ShortUrl.objects.create(
+            user=self.owner,
+            name="Test Short",
+            slug="test-short",
+            original_url="https://example.com",
+        )
+        self.client = Client()
+
+    def test_active_shorturl_redirects(self):
+        response = self.client.get("/s/test-short/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "https://example.com")
+
+    def test_click_registered_on_redirect(self):
+        self.client.get("/s/test-short/")
+        self.short.refresh_from_db()
+        self.assertEqual(self.short.total_clicks, 1)
+        self.assertEqual(ShortUrlClickEvent.objects.count(), 1)
+        event = ShortUrlClickEvent.objects.first()
+        self.assertEqual(event.short_url, self.short)
+
+    def test_inactive_shorturl_returns_404(self):
+        self.short.is_active = False
+        self.short.save()
+        response = self.client.get("/s/test-short/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_unknown_slug_returns_404(self):
+        response = self.client.get("/s/no-existe/")
+        self.assertEqual(response.status_code, 404)

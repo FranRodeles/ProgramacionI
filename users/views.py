@@ -58,8 +58,8 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response({"detail": "Sesión cerrada exitosamente"})
-        except Exception as e:
+        except Exception:
             return Response(
-                {"error": str(e)},
+                {"error": "Token de refresh inválido o expirado"},
                 status=status.HTTP_400_BAD_REQUEST,
             )

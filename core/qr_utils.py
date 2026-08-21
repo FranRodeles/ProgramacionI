@@ -10,6 +10,10 @@ def build_qr_redirect_path(qr_code):
     return reverse("qr-redirect", kwargs={"slug": qr_code.slug})
 
 
+def build_qr_image_path(qr_code):
+    return reverse("core:qr-image", kwargs={"pk": qr_code.pk})
+
+
 def build_qr_redirect_url(request, qr_code):
     path = build_qr_redirect_path(qr_code)
     return request.build_absolute_uri(path)
