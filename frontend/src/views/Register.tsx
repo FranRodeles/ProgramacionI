@@ -15,8 +15,10 @@ function Register() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (!register({ name, email, username, password })) {
-      setError('El nombre de usuario ya está en uso')
+    setError('')
+    const result = register({ name, email, username, password })
+    if (!result.success) {
+      setError(result.error ?? 'No se pudo completar el registro')
     }
   }
 
@@ -27,7 +29,9 @@ function Register() {
         <h1 className="auth-title">Crear tu cuenta</h1>
         <p className="auth-subtitle">Registrate para empezar a usar QRedirect</p>
 
-        {error && <div className="alert alert-danger auth-alert">{error}</div>}
+        {error && (
+          <div id="register-error" role="alert" className="alert alert-danger auth-alert">{error}</div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
@@ -38,6 +42,7 @@ function Register() {
               className="form-control"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
               required
             />
           </div>
@@ -49,6 +54,7 @@ function Register() {
               className="form-control"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
             />
           </div>
@@ -60,6 +66,8 @@ function Register() {
               className="form-control"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              aria-describedby={error ? 'register-error' : undefined}
               required
             />
           </div>
@@ -71,6 +79,8 @@ function Register() {
               className="form-control"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              aria-describedby={error ? 'register-error' : undefined}
               required
             />
           </div>

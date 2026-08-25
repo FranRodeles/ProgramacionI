@@ -120,6 +120,8 @@ body { margin: 0; min-width: 320px; background: #f7f5f0; }
 .auth-link { color: #526b42; text-decoration: none; font-weight: 600; }
 .auth-link:hover { color: #405139; text-decoration: underline; }
 .qredirect-user-name { color: #f7f5f0; font-size: .9rem; font-weight: 600; display: inline-flex; align-items: center; }
+.qredirect-nav-logout { border: 1px solid rgba(212, 223, 189, .65); border-radius: 999px; background: transparent; color: #f7f5f0; font-weight: 600; padding: .55rem .8rem; }
+.qredirect-nav-logout:hover { background: rgba(212, 223, 189, .12); color: #d4dfbd; }
 
 @keyframes cardFade {
   from { opacity: 0; transform: translateY(1rem) rotate(var(--card-rotation, 0deg)); }

@@ -15,10 +15,17 @@ export interface RegisterData {
   password: string
 }
 
+export type SessionUser = Omit<User, 'password'>
+
+export type AuthResult = {
+  success: boolean
+  error?: string
+}
+
 export interface AuthContextValue {
-  user: User | null
-  login: (username: string, password: string) => boolean
-  register: (data: RegisterData) => boolean
+  user: SessionUser | null
+  login: (username: string, password: string) => AuthResult
+  register: (data: RegisterData) => AuthResult
   logout: () => void
 }
 

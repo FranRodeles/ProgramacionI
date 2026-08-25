@@ -13,8 +13,10 @@ function Login() {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (!login(username, password)) {
-      setError('Usuario o contraseña incorrectos')
+    setError('')
+    const result = login(username, password)
+    if (!result.success) {
+      setError(result.error ?? 'No se pudo iniciar sesión')
     }
   }
 
@@ -25,7 +27,9 @@ function Login() {
         <h1 className="auth-title">Iniciar sesión</h1>
         <p className="auth-subtitle">Accedé a tu cuenta de QRedirect</p>
 
-        {error && <div className="alert alert-danger auth-alert">{error}</div>}
+        {error && (
+          <div id="login-error" role="alert" className="alert alert-danger auth-alert">{error}</div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
@@ -36,6 +40,8 @@ function Login() {
               className="form-control"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              aria-describedby={error ? 'login-error' : undefined}
               required
             />
           </div>
@@ -47,6 +53,8 @@ function Login() {
               className="form-control"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              aria-describedby={error ? 'login-error' : undefined}
               required
             />
           </div>

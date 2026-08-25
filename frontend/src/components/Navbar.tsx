@@ -32,7 +32,7 @@ function Navbar() {
             {user ? (
               <>
                 <span className="qredirect-user-name"><i className="bi bi-person-circle me-1" />{user.name}</span>
-                <button className="btn qredirect-nav-cta" type="button" onClick={handleLogout}>
+                <button className="btn qredirect-nav-logout" type="button" onClick={handleLogout}>
                   Cerrar sesión <i className="bi bi-box-arrow-right ms-1" />
                 </button>
               </>
