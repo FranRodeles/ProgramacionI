@@ -88,6 +88,41 @@ body { margin: 0; min-width: 320px; background: #f7f5f0; }
 .how-card .card-text { color: #666; font-size: .9rem; }
 .qredirect-footer { background: #2d3a1c; }
 
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: #f7f5f0;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border: 1px solid #e2e5dd;
+  border-radius: 1rem;
+  box-shadow: 0 1rem 2.5rem rgba(46, 59, 37, .12);
+  padding: 2.5rem 2rem;
+}
+
+.auth-logo { display: block; width: 170px; height: auto; margin: 0 auto .75rem; }
+.auth-title { font-family: Georgia, "Times New Roman", serif; color: #344228; text-align: center; font-size: 1.6rem; margin-bottom: .25rem; }
+.auth-subtitle { color: #65675e; text-align: center; font-size: .92rem; margin-bottom: 1.5rem; }
+.auth-label { color: #344228; font-weight: 600; font-size: .88rem; }
+.auth-card .form-control { border-color: #d7dcd2; padding: .65rem .8rem; }
+.auth-card .form-control:focus { border-color: #718461; box-shadow: 0 0 0 .2rem rgba(113, 132, 97, .2); }
+.auth-submit { border: 0; border-radius: .6rem; background: #405139; color: #fff; font-weight: 600; padding: .7rem 1.25rem; }
+.auth-submit:hover { background: #506449; color: #fff; }
+.auth-alert { border-radius: .5rem; font-size: .88rem; }
+.auth-footer { text-align: center; margin: 1.25rem 0 0; font-size: .9rem; color: #65675e; }
+.auth-link { color: #526b42; text-decoration: none; font-weight: 600; }
+.auth-link:hover { color: #405139; text-decoration: underline; }
+.qredirect-user-name { color: #f7f5f0; font-size: .9rem; font-weight: 600; display: inline-flex; align-items: center; }
+.qredirect-nav-logout { border: 1px solid rgba(212, 223, 189, .65); border-radius: 999px; background: transparent; color: #f7f5f0; font-weight: 600; padding: .55rem .8rem; }
+.qredirect-nav-logout:hover { background: rgba(212, 223, 189, .12); color: #d4dfbd; }
+
 @keyframes cardFade {
   from { opacity: 0; transform: translateY(1rem) rotate(var(--card-rotation, 0deg)); }
   to { opacity: 1; transform: translateY(0) rotate(var(--card-rotation, 0deg)); }
