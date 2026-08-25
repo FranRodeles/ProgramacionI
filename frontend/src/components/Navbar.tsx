@@ -6,9 +6,9 @@ function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const { user, logout } = useAuth()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
     setIsOpen(false)
+    await logout()
   }
 
   return (
@@ -31,7 +31,7 @@ function Navbar() {
           <div className="qredirect-nav-actions">
             {user ? (
               <>
-                <span className="qredirect-user-name"><i className="bi bi-person-circle me-1" />{user.name}</span>
+                <span className="qredirect-user-name"><i className="bi bi-person-circle me-1" />{user.first_name || user.username}</span>
                 <button className="btn qredirect-nav-logout" type="button" onClick={handleLogout}>
                   Cerrar sesión <i className="bi bi-box-arrow-right ms-1" />
                 </button>

@@ -1,65 +1,82 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AuthContext } from './AuthContext'
-import type { User, RegisterData, SessionUser, AuthResult } from './AuthContext'
-
-const INITIAL_USERS: User[] = [
-  { id: 1, name: 'Administrador', email: 'admin@qredirect.com', username: 'admin', password: 'admin' },
-]
-
-const MIN_PASSWORD_LENGTH = 8
-
-function toSessionUser(user: User): SessionUser {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    username: user.username,
-  }
-}
+import type { SessionUser, RegisterData, AuthResult } from './AuthContext'
+import * as authApi from '../api/auth'
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../api/tokenStorage'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS)
   const [user, setUser] = useState<SessionUser | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const usersRef = useRef<User[]>(INITIAL_USERS)
-  const nextIdRef = useRef<number>(INITIAL_USERS.length + 1)
+  useEffect(() => {
+    let cancelled = false
 
-  usersRef.current = users
-
-  const login = useCallback((username: string, password: string): AuthResult => {
-    const found = usersRef.current.find((u) => u.username === username && u.password === password)
-    if (!found) {
-      return { success: false, error: 'Usuario o contraseña incorrectos' }
+    async function restore() {
+      if (!getAccessToken()) {
+        setLoading(false)
+        return
+      }
+      try {
+        const profile = await authApi.fetchProfile()
+        if (!cancelled) setUser(profile)
+      } catch {
+        clearTokens()
+        if (!cancelled) setUser(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-    setUser(toSessionUser(found))
-    return { success: true }
+
+    restore()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const register = useCallback((data: RegisterData): AuthResult => {
-    if (usersRef.current.some((u) => u.username === data.username)) {
-      return { success: false, error: 'El nombre de usuario ya está en uso' }
+  const login = useCallback(async (username: string, password: string): Promise<AuthResult> => {
+    try {
+      const tokens = await authApi.login(username, password)
+      setTokens(tokens.access, tokens.refresh)
+      const profile = await authApi.fetchProfile()
+      setUser(profile)
+      return { success: true }
+    } catch (error) {
+      if (error instanceof authApi.ApiError) {
+        return { success: false, error: error.message }
+      }
+      return { success: false, error: 'No se pudo conectar con el servidor' }
     }
-    if (usersRef.current.some((u) => u.email === data.email)) {
-      return { success: false, error: 'El email ya está registrado' }
-    }
-    if (data.password.length < MIN_PASSWORD_LENGTH) {
-      return { success: false, error: `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres` }
-    }
-
-    const newUser: User = { ...data, id: nextIdRef.current }
-    nextIdRef.current += 1
-
-    setUsers((prev) => [...prev, newUser])
-    setUser(toSessionUser(newUser))
-    return { success: true }
   }, [])
 
-  const logout = useCallback(() => setUser(null), [])
+  const register = useCallback(async (data: RegisterData): Promise<AuthResult> => {
+    try {
+      await authApi.register(data)
+      return await login(data.username, data.password)
+    } catch (error) {
+      if (error instanceof authApi.ApiError) {
+        return { success: false, error: error.message }
+      }
+      return { success: false, error: 'No se pudo conectar con el servidor' }
+    }
+  }, [login])
+
+  const logout = useCallback(async (): Promise<void> => {
+    const refresh = getRefreshToken()
+    if (refresh) {
+      try {
+        await authApi.logout(refresh)
+      } catch {
+        // Si la API falla, igual limpiamos la sesión local.
+      }
+    }
+    clearTokens()
+    setUser(null)
+  }, [])
 
   const value = useMemo(
-    () => ({ user, login, register, logout }),
-    [user, login, register, logout]
+    () => ({ user, loading, login, register, logout }),
+    [user, loading, login, register, logout]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

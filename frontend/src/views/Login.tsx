@@ -8,13 +8,16 @@ function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   if (user) return <Navigate to="/" replace />
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
-    const result = login(username, password)
+    setSubmitting(true)
+    const result = await login(username, password)
+    setSubmitting(false)
     if (!result.success) {
       setError(result.error ?? 'No se pudo iniciar sesión')
     }
@@ -58,8 +61,8 @@ function Login() {
               required
             />
           </div>
-          <button type="submit" className="btn auth-submit w-100">
-            Iniciar sesión
+          <button type="submit" className="btn auth-submit w-100" disabled={submitting}>
+            {submitting ? 'Ingresando...' : 'Iniciar sesión'}
           </button>
         </form>
 
