@@ -8,19 +8,28 @@ from core.models.shorturl import ShortUrl, ShortUrlClickEvent
 from core.qr_utils import resolve_qr_destination
 
 
-def qr_redirect(request, slug):
+def _get_active_or_404(model, slug, message):
     try:
-        qr_code = QRCode.objects.get(slug=slug, is_active=True)
-    except QRCode.DoesNotExist as exc:
-        raise Http404("QR no encontrado o inactivo") from exc
+        return model.objects.get(slug=slug, is_active=True)
+    except model.DoesNotExist as exc:
+        raise Http404(message) from exc
 
+
+def _track_request(request, obj, event_model, count_field, relation_name):
     with transaction.atomic():
-        QRCode.objects.filter(pk=qr_code.pk).update(total_scans=F("total_scans") + 1)
-        QRScanEvent.objects.create(
-            qr_code=qr_code,
-            ip_address=request.META.get("REMOTE_ADDR", "127.0.0.1"),
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        type(obj).objects.filter(pk=obj.pk).update(**{count_field: F(count_field) + 1})
+        event_model.objects.create(
+            **{
+                relation_name: obj,
+                "ip_address": request.META.get("REMOTE_ADDR", "127.0.0.1"),
+                "user_agent": request.META.get("HTTP_USER_AGENT", ""),
+            }
         )
+
+
+def qr_redirect(request, slug):
+    qr_code = _get_active_or_404(QRCode, slug, "QR no encontrado o inactivo")
+    _track_request(request, qr_code, QRScanEvent, "total_scans", "qr_code")
 
     destination = resolve_qr_destination(qr_code)
     if qr_code.destination_type == "TEXT":
@@ -30,17 +39,7 @@ def qr_redirect(request, slug):
 
 
 def shorturl_redirect(request, slug):
-    try:
-        short_url = ShortUrl.objects.get(slug=slug, is_active=True)
-    except ShortUrl.DoesNotExist as exc:
-        raise Http404("URL corta no encontrada o inactiva") from exc
-
-    with transaction.atomic():
-        ShortUrl.objects.filter(pk=short_url.pk).update(total_clicks=F("total_clicks") + 1)
-        ShortUrlClickEvent.objects.create(
-            short_url=short_url,
-            ip_address=request.META.get("REMOTE_ADDR", "127.0.0.1"),
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        )
+    short_url = _get_active_or_404(ShortUrl, slug, "URL corta no encontrada o inactiva")
+    _track_request(request, short_url, ShortUrlClickEvent, "total_clicks", "short_url")
 
     return redirect(short_url.original_url)
