@@ -1,21 +1,20 @@
 import { createContext } from 'react'
 
-export interface User {
+export interface UserBase {
+  username: string
+  first_name: string
+  last_name: string
+  email: string
+}
+
+export interface SessionUser extends UserBase {
   id: number
-  name: string
-  email: string
-  username: string
-  password: string
+  role: string
 }
 
-export interface RegisterData {
-  name: string
-  email: string
-  username: string
+export interface RegisterData extends UserBase {
   password: string
 }
-
-export type SessionUser = Omit<User, 'password'>
 
 export type AuthResult = {
   success: boolean
@@ -24,9 +23,10 @@ export type AuthResult = {
 
 export interface AuthContextValue {
   user: SessionUser | null
-  login: (username: string, password: string) => AuthResult
-  register: (data: RegisterData) => AuthResult
-  logout: () => void
+  loading: boolean
+  login: (username: string, password: string) => Promise<AuthResult>
+  register: (data: RegisterData) => Promise<AuthResult>
+  logout: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

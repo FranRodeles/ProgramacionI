@@ -5,18 +5,28 @@ import { useAuth } from '../context/useAuth'
 
 function Register() {
   const { user, register } = useAuth()
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   if (user) return <Navigate to="/" replace />
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
-    const result = register({ name, email, username, password })
+    setSubmitting(true)
+    const result = await register({
+      username,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
+    })
+    setSubmitting(false)
     if (!result.success) {
       setError(result.error ?? 'No se pudo completar el registro')
     }
@@ -35,14 +45,26 @@ function Register() {
 
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
-            <label htmlFor="name" className="form-label auth-label">Nombre</label>
+            <label htmlFor="firstName" className="form-label auth-label">Nombre</label>
             <input
-              id="name"
+              id="firstName"
               type="text"
               className="form-control"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoComplete="given-name"
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="lastName" className="form-label auth-label">Apellido</label>
+            <input
+              id="lastName"
+              type="text"
+              className="form-control"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              autoComplete="family-name"
               required
             />
           </div>
@@ -84,8 +106,8 @@ function Register() {
               required
             />
           </div>
-          <button type="submit" className="btn auth-submit w-100">
-            Registrarse
+          <button type="submit" className="btn auth-submit w-100" disabled={submitting}>
+            {submitting ? 'Registrando...' : 'Registrarse'}
           </button>
         </form>
 

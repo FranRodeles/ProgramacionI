@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from '../context/AuthProvider'
 import Login from './Login'
+import { jsonResponse, tokenBody, profileBody } from '../test/helpers'
 
 function renderLogin() {
   return render(
@@ -20,6 +21,8 @@ function renderLogin() {
 
 describe('Login', () => {
   it('muestra error con credenciales inválidas', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ detail: 'No active account' }, 401)))
+
     renderLogin()
     const user = userEvent.setup()
 
@@ -31,6 +34,16 @@ describe('Login', () => {
   })
 
   it('redirige a Home con credenciales válidas', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.endsWith('/api/token/')) return jsonResponse(tokenBody, 200)
+        if (url.endsWith('/api/users/profile/')) return jsonResponse(profileBody, 200)
+        return jsonResponse({}, 404)
+      })
+    )
+
     renderLogin()
     const user = userEvent.setup()
 
