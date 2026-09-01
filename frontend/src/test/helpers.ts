@@ -3,6 +3,7 @@ export function jsonResponse(body: unknown, status: number): Response {
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
   } as unknown as Response
 }
 

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AuthContext } from './AuthContext'
 import type { SessionUser, RegisterData, AuthResult } from './AuthContext'
 import * as authApi from '../api/auth'
+import { NetworkError } from '../api/client'
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '../api/tokenStorage'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -20,8 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await authApi.fetchProfile()
         if (!cancelled) setUser(profile)
-      } catch {
-        clearTokens()
+      } catch (error) {
+        if (!(error instanceof NetworkError)) {
+          clearTokens()
+        }
         if (!cancelled) setUser(null)
       } finally {
         if (!cancelled) setLoading(false)

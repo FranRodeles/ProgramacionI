@@ -1,8 +1,24 @@
 import { getAccessToken, getRefreshToken, setAccessToken, clearTokens } from './tokenStorage'
 
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const BASE_URL: string = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/+$/, '')
 
-async function refreshAccessToken(): Promise<boolean> {
+export class SessionExpiredError extends Error {
+  constructor() {
+    super('Sesión expirada')
+    this.name = 'SessionExpiredError'
+  }
+}
+
+export class NetworkError extends Error {
+  constructor() {
+    super('No se pudo conectar con el servidor')
+    this.name = 'NetworkError'
+  }
+}
+
+let refreshPromise: Promise<boolean> | null = null
+
+async function doRefresh(): Promise<boolean> {
   const refresh = getRefreshToken()
   if (!refresh) return false
   try {
@@ -19,6 +35,15 @@ async function refreshAccessToken(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
 }
 
 interface ApiFetchOptions {
@@ -40,7 +65,12 @@ export async function apiFetch(
   const access = auth ? getAccessToken() : null
   if (access) headers.set('Authorization', `Bearer ${access}`)
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  } catch {
+    throw new NetworkError()
+  }
 
   if (auth && res.status === 401 && !retried) {
     const refreshed = await refreshAccessToken()
@@ -48,7 +78,7 @@ export async function apiFetch(
       return apiFetch(path, options, { auth, retried: true })
     }
     clearTokens()
-    throw new Error('Sesión expirada')
+    throw new SessionExpiredError()
   }
 
   return res

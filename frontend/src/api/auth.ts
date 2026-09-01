@@ -29,12 +29,7 @@ export class ApiError extends Error {
   }
 }
 
-function extractFieldError(data: unknown): string {
-  if (!data || typeof data !== 'object') return 'Error en el registro'
-  const obj = data as Record<string, unknown>
-  const key = Object.keys(obj)[0]
-  if (!key) return 'Error en el registro'
-  const value = obj[key]
+function translateFieldError(key: string, value: unknown): string {
   const message = Array.isArray(value) ? String(value[0]) : String(value)
   switch (key) {
     case 'username':
@@ -43,9 +38,20 @@ function extractFieldError(data: unknown): string {
       return 'El email ya está registrado'
     case 'password':
       return 'La contraseña no cumple los requisitos'
+    case 'first_name':
+    case 'last_name':
+      return 'El nombre o apellido es inválido'
     default:
       return message
   }
+}
+
+function extractFieldError(data: unknown): string {
+  if (!data || typeof data !== 'object') return 'Error en el registro'
+  const obj = data as Record<string, unknown>
+  const keys = Object.keys(obj)
+  if (keys.length === 0) return 'Error en el registro'
+  return keys.map((key) => translateFieldError(key, obj[key])).join(', ')
 }
 
 export async function login(username: string, password: string): Promise<TokenResponse> {

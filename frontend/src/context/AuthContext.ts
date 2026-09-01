@@ -1,19 +1,18 @@
 import { createContext } from 'react'
 
-export interface SessionUser {
-  id: number
+export interface UserBase {
   username: string
   first_name: string
   last_name: string
   email: string
+}
+
+export interface SessionUser extends UserBase {
+  id: number
   role: string
 }
 
-export interface RegisterData {
-  username: string
-  first_name: string
-  last_name: string
-  email: string
+export interface RegisterData extends UserBase {
   password: string
 }
 

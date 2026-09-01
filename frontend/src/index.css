@@ -97,6 +97,8 @@ body { margin: 0; min-width: 320px; background: #f7f5f0; }
   background: #f7f5f0;
 }
 
+.qredirect-spinner { color: #526b42; }
+
 .auth-card {
   width: 100%;
   max-width: 380px;
