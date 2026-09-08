@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import type { FormEvent } from 'react'
 import { useAuth } from '../context/useAuth'
 
 function Login() {
   const { user, login } = useAuth()
+  const location = useLocation()
+  const notice = location.state?.message
+
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -30,6 +33,9 @@ function Login() {
         <h1 className="auth-title">Iniciar sesión</h1>
         <p className="auth-subtitle">Accedé a tu cuenta de QRedirect</p>
 
+        {notice && (
+          <div role="alert" className="alert alert-info auth-alert">{notice}</div>
+        )}
         {error && (
           <div id="login-error" role="alert" className="alert alert-danger auth-alert">{error}</div>
         )}

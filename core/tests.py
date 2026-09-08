@@ -216,3 +216,138 @@ class ShortUrlRedirectTest(TestCase):
     def test_unknown_slug_returns_404(self):
         response = self.client.get("/s/no-existe/")
         self.assertEqual(response.status_code, 404)
+
+
+class QRCodeSlugTransformationTest(TestCase):
+    """Pruebas para transformación y validación amigable de slugs."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="sluguser", password="Test123456"
+        )
+        QRCode.objects.create(
+            user=self.user,
+            name="QR Existente",
+            slug="ya-existe",
+            destination_type="WEB",
+            destination_value="https://existente.com",
+        )
+
+    def test_slug_with_spaces_is_slugified(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        serializer = QRCodeSerializer(
+            data={
+                "name": "Mi Café",
+                "slug": "Mi Café 2024!",
+                "destination_type": "WEB",
+                "destination_value": "https://cafe.com",
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["slug"], "mi-cafe-2024")
+
+    def test_duplicate_slug_raises_friendly_validation_error(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        serializer = QRCodeSerializer(
+            data={
+                "name": "Duplicado",
+                "slug": "Ya Existe",
+                "destination_type": "WEB",
+                "destination_value": "https://duplicado.com",
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("slug", serializer.errors)
+        self.assertIn("ya está en uso", serializer.errors["slug"][0])
+
+
+class ShortUrlCreationTest(TestCase):
+    """Pruebas para creación de ShortUrl y normalización de URLs."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="shortuser", password="Test123456"
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_shorturl_without_slug_auto_generates_one(self):
+        response = self.client.post(
+            "/api/shorturl/",
+            {"name": "Google", "original_url": "google.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertTrue(len(data["slug"]) > 0)
+        self.assertEqual(data["original_url"], "https://google.com")
+        self.assertIn(f"/s/{data['slug']}/", data["short_url"])
+
+    def test_create_shorturl_with_spaces_in_slug(self):
+        response = self.client.post(
+            "/api/shorturl/",
+            {
+                "name": "Mi Tienda",
+                "original_url": "https://mitienda.com",
+                "slug": "Mi Tienda 2024",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(data["slug"], "mi-tienda-2024")
+        self.assertIn("/s/mi-tienda-2024/", data["short_url"])
+
+
+class AnalyticsPermissionsTest(TestCase):
+    """Pruebas de permisos de acceso a analíticas (dueño y admin vs otros)."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="analyst_owner", password="Test123456"
+        )
+        self.other = User.objects.create_user(
+            username="analyst_other", password="Test123456"
+        )
+        self.admin = User.objects.create_superuser(
+            username="analyst_admin", password="Test123456", role=User.Role.ADMIN
+        )
+        self.qr = QRCode.objects.create(
+            user=self.owner,
+            name="QR Privado",
+            slug="qr-privado",
+            destination_type="WEB",
+            destination_value="https://privado.com",
+            total_scans=1,
+        )
+        QRScanEvent.objects.create(
+            qr_code=self.qr,
+            ip_address="192.168.1.50",
+            country="Argentina",
+            city="Mendoza",
+            device_type="Móvil",
+        )
+        self.client = APIClient()
+
+    def test_owner_can_view_analytics_without_ip(self):
+        self.client.force_authenticate(user=self.owner)
+        res = self.client.get(f"/api/qr/{self.qr.id}/analytics/")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["total_scans"], 1)
+        self.assertEqual(len(data["events"]), 1)
+        self.assertNotIn("ip_address", data["events"][0])
+        self.assertEqual(data["events"][0]["country"], "Argentina")
+
+    def test_other_user_gets_404(self):
+        self.client.force_authenticate(user=self.other)
+        res = self.client.get(f"/api/qr/{self.qr.id}/analytics/")
+        self.assertEqual(res.status_code, 404)
+
+    def test_admin_can_view_anyone_analytics(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get(f"/api/qr/{self.qr.id}/analytics/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["name"], "QR Privado")

@@ -1,3 +1,4 @@
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from core.models.qrcode import QRCode, QRScanEvent
@@ -10,6 +11,7 @@ class QRCodeSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source="user.username", read_only=True)
     qr_redirect_url = serializers.SerializerMethodField()
     qr_image_url = serializers.SerializerMethodField()
+    slug = serializers.CharField(required=False, allow_blank=True, max_length=50)
 
     class Meta:
         model = QRCode
@@ -22,6 +24,7 @@ class QRCodeSerializer(serializers.ModelSerializer):
             "destination_type",
             "destination_value",
             "is_active",
+            "customization",
             "qr_redirect_url",
             "qr_image_url",
             "total_scans",
@@ -36,6 +39,20 @@ class QRCodeSerializer(serializers.ModelSerializer):
             "updated_at",
             "user_username",
         )
+
+    def validate_slug(self, value):
+        if not value or not value.strip():
+            return ""
+        cleaned = slugify(value.strip())
+        if not cleaned:
+            raise serializers.ValidationError("El enlace personalizado ingresado no es válido.")
+        instance = getattr(self, "instance", None)
+        qs = QRCode.objects.filter(slug=cleaned)
+        if instance:
+            qs = qs.exclude(pk=instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Este enlace personalizado ya está en uso. Por favor elegí otro.")
+        return cleaned
 
     def get_qr_redirect_url(self, obj):
         request = self.context.get("request")

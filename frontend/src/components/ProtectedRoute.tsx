@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../context/useAuth'
 
-function ProtectedRoute({ children }: { children: ReactNode }) {
+function ProtectedRoute({ children, message }: { children: ReactNode; message?: string }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
@@ -13,7 +13,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/login" replace state={message ? { message } : undefined} />
   return <>{children}</>
 }
 

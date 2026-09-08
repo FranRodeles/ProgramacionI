@@ -1,5 +1,6 @@
 import '../styles/animations.css'
 import { qrCells } from '../utils/decorativeQr'
+import { Link } from 'react-router-dom'
 
 function DecorativeQr() {
   return (
@@ -29,9 +30,9 @@ function Hero() {
               Genera, personaliza y analiza tus QR dinámicos. También acorta URL y lleva todo el control en un solo lugar
             </p>
             <div className="hero-action-group">
-              <a className="btn hero-cta" href="#crear-qr">
+              <Link className="btn hero-cta" to="/crear-qr">
                 Crear mi primer QR <i className="bi bi-arrow-right ms-2" />
-              </a>
+              </Link>
               <span className="hero-note"><i className="bi bi-arrow-up-left" /> ¡Es gratis!</span>
             </div>
           </div>
