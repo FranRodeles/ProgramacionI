@@ -13,6 +13,7 @@ class QRCode(models.Model):
     - `destination_type`: tipo de destino que el QR va a abrir.
     - `destination_value`: contenido real del destino.
     - `total_scans`: contador rápido para estadísticas.
+    - `customization`: estilos del QR (formas, colores, logo en base64).
     """
 
     DESTINATION_TYPES = [
@@ -35,6 +36,7 @@ class QRCode(models.Model):
     destination_value = models.TextField()
     is_active = models.BooleanField(default=True)
     total_scans = models.IntegerField(default=0)
+    customization = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

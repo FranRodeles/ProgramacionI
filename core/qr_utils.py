@@ -19,15 +19,22 @@ def build_qr_redirect_url(request, qr_code):
     return request.build_absolute_uri(path)
 
 
-def build_qr_png_bytes(content):
+def build_qr_png_bytes(content, customization=None):
     qr = qrcode.QRCode(box_size=10, border=4)
     qr.add_data(content)
     qr.make(fit=True)
 
-    image = qr.make_image(fill_color="black", back_color="white")
+    fill_color = "black"
+    back_color = "white"
+    if customization and isinstance(customization, dict):
+        fill_color = customization.get("dot_color") or "black"
+        back_color = customization.get("background_color") or "white"
+
+    image = qr.make_image(fill_color=fill_color, back_color=back_color)
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
+
 
 
 def resolve_qr_destination(qr_code):

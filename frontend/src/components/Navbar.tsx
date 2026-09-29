@@ -22,15 +22,21 @@ function Navbar() {
         </button>
         <div className={`qredirect-collapse ${isOpen ? 'show' : ''}`}>
           <ul className="navbar-nav me-auto qredirect-nav-links">
-            {['Inicio', 'Crear QR', 'Acortar link', 'Características', 'Precios'].map((label, index) => (
-              <li className="nav-item" key={label}>
-                <a className={`nav-link ${index === 0 ? 'active' : ''}`} href={index === 0 ? '#inicio' : '#caracteristicas'} onClick={() => setIsOpen(false)}>{label}</a>
-              </li>
-            ))}
+            <li className="nav-item"><Link className="nav-link" to="/" onClick={() => setIsOpen(false)}>Inicio</Link></li>
+            <li className="nav-item"><Link className="nav-link" to="/crear-qr" onClick={() => setIsOpen(false)}>Crear QR</Link></li>
+            <li className="nav-item"><Link className="nav-link" to="/acortar-link" onClick={() => setIsOpen(false)}>Acortar link</Link></li>
+            <li className="nav-item"><Link className="nav-link" to="/caracteristicas" onClick={() => setIsOpen(false)}>Características</Link></li>
           </ul>
           <div className="qredirect-nav-actions">
             {user ? (
               <>
+                <Link
+                  className="btn qredirect-nav-cta"
+                  to="/mis-enlaces"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <i className="bi bi-grid-fill me-1" /> Mis QR y Enlaces
+                </Link>
                 <span className="qredirect-user-name"><i className="bi bi-person-circle me-1" />{user.first_name || user.username}</span>
                 <button className="btn qredirect-nav-logout" type="button" onClick={handleLogout}>
                   Cerrar sesión <i className="bi bi-box-arrow-right ms-1" />
@@ -38,7 +44,7 @@ function Navbar() {
               </>
             ) : (
               <>
-                <Link className="btn qredirect-nav-cta" to="/register" onClick={() => setIsOpen(false)}>
+                <Link className="btn qredirect-nav-cta" to="/crear-qr" onClick={() => setIsOpen(false)}>
                   Crear mi primer QR <i className="bi bi-arrow-right" />
                 </Link>
                 <Link className="qredirect-login-link" to="/login" onClick={() => setIsOpen(false)}>Iniciar sesión</Link>
