@@ -4,10 +4,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from users.models import User
 from users.serializers import UserSerializer, UserCreateSerializer
 from users.permissions import IsAdmin
+from core.throttles import AuthRateThrottle, RegisterRateThrottle
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -19,6 +21,12 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action in ("list", "destroy"):
             return [IsAuthenticated(), IsAdmin()]
         return [IsAuthenticated()]
+
+    def get_throttles(self):
+        throttles = super().get_throttles()
+        if self.action == "create":
+            throttles.append(RegisterRateThrottle())
+        return throttles
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -63,3 +71,11 @@ class LogoutView(APIView):
                 {"error": "Token de refresh inválido o expirado"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    throttle_classes = [AuthRateThrottle]
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    throttle_classes = [AuthRateThrottle]
