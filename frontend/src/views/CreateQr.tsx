@@ -4,18 +4,7 @@ import { createQr, patchQr } from '../api/qr'
 import type { QRCodeData } from '../api/qr'
 import QrPreview from '../components/qr/QrPreview'
 import type QRCodeStyling from 'qr-code-styling'
-
-export function slugify(text: string): string {
-  return text
-    .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Quita acentos y tildes
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-_]/g, '') // Permite solo caracteres alfanuméricos, espacios y guiones
-    .replace(/[\s_]+/g, '-') // Reemplaza espacios y guiones bajos por guión medio
-    .replace(/^-+|-+$/g, '') // Elimina guiones sobrantes al inicio o final
-}
+import { slugify } from '../utils/slug'
 
 export default function CreateQr() {
   const navigate = useNavigate()
@@ -38,6 +27,7 @@ export default function CreateQr() {
   const [logo, setLogo] = useState<string>('')
   
   const qrCodeRef = useRef<QRCodeStyling | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,17 +35,27 @@ export default function CreateQr() {
     setLoading(true)
     try {
       const formattedSlug = slug.trim() ? slugify(slug) : undefined
-      const created = await createQr({
-        name,
-        destination_type: type,
-        destination_value: value,
-        slug: formattedSlug,
-        is_active: false,
-      })
-      setQrCode(created)
+      if (qrCode) {
+        const updated = await patchQr(qrCode.id, {
+          name,
+          destination_type: type,
+          destination_value: value,
+          slug: formattedSlug,
+        })
+        setQrCode(updated)
+      } else {
+        const created = await createQr({
+          name,
+          destination_type: type,
+          destination_value: value,
+          slug: formattedSlug,
+          is_active: false,
+        })
+        setQrCode(created)
+      }
       setStep(2)
     } catch (err: any) {
-      setError(err.message || 'Error creando QR')
+      setError(err.message || 'Error guardando datos básicos')
     } finally {
       setLoading(false)
     }
@@ -64,11 +64,26 @@ export default function CreateQr() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 500 * 1024) {
+      setError('El logo no debe superar los 500 KB')
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+      return
+    }
+    setError('')
     const reader = new FileReader()
     reader.onload = (evt) => {
       setLogo(evt.target?.result as string)
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleRemoveLogo = () => {
+    setLogo('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleStep2 = async (e: React.FormEvent) => {
@@ -250,8 +265,26 @@ export default function CreateQr() {
             </div>
 
             <div className="mb-4">
-              <label className="form-label auth-label">Logo (Opcional)</label>
-              <input type="file" className="form-control" accept="image/*" onChange={handleFileChange} />
+              <label className="form-label auth-label">Logo (Opcional, máx. 500 KB)</label>
+              <div className="d-flex align-items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="form-control"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                {logo && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={handleRemoveLogo}
+                    title="Quitar logo"
+                  >
+                    <i className="bi bi-x-lg" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="d-flex gap-2">

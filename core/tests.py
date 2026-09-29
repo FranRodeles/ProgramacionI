@@ -351,3 +351,85 @@ class AnalyticsPermissionsTest(TestCase):
         res = self.client.get(f"/api/qr/{self.qr.id}/analytics/")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()["name"], "QR Privado")
+
+
+class CodeReviewFixesTest(TestCase):
+    """Tests para verificar las correcciones del code review senior."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="reviewer_user", password="Test123456"
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_whatsapp_validation_in_serializer(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        serializer = QRCodeSerializer(
+            data={
+                "name": "WhatsApp Malo",
+                "destination_type": "WHATSAPP",
+                "destination_value": "texto sin numeros",
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("destination_value", serializer.errors)
+
+        serializer_ok = QRCodeSerializer(
+            data={
+                "name": "WhatsApp Bueno",
+                "destination_type": "WHATSAPP",
+                "destination_value": "+54 9 261 1234567",
+            }
+        )
+        self.assertTrue(serializer_ok.is_valid(), serializer_ok.errors)
+
+    def test_slug_preserved_on_update_with_empty_slug(self):
+        from core.serializers.qrcode import QRCodeSerializer
+        from core.serializers.shorturl import ShortUrlSerializer
+
+        qr = QRCode.objects.create(
+            user=self.user,
+            name="QR Original",
+            slug="slug-original",
+            destination_type="WEB",
+            destination_value="https://original.com",
+        )
+        serializer = QRCodeSerializer(instance=qr, data={"name": "QR Modificado", "slug": "   "}, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data["slug"], "slug-original")
+
+        short = ShortUrl.objects.create(
+            user=self.user,
+            name="Short Original",
+            slug="short-original",
+            original_url="https://original.com",
+        )
+        short_serializer = ShortUrlSerializer(instance=short, data={"name": "Short Modificado", "slug": ""}, partial=True)
+        self.assertTrue(short_serializer.is_valid(), short_serializer.errors)
+        self.assertEqual(short_serializer.validated_data["slug"], "short-original")
+
+    def test_geolocation_fallback_unknown(self):
+        from core.views import _parse_client_info
+        from django.test import RequestFactory
+
+        rf = RequestFactory()
+        req = rf.get("/")
+        info = _parse_client_info(req)
+        self.assertEqual(info["country"], "Desconocido")
+        self.assertEqual(info["city"], "Desconocido")
+
+    def test_invalid_destination_returns_404_not_500(self):
+        # Si un QR en BD tuviese valor corrupto de whatsapp
+        qr = QRCode.objects.create(
+            user=self.user,
+            name="Corrupto",
+            slug="corrupto-wa",
+            destination_type="WHATSAPP",
+            destination_value="invalido",
+        )
+        c = Client()
+        response = c.get(f"/q/{qr.slug}/")
+        self.assertEqual(response.status_code, 404)
+

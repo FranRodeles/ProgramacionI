@@ -1,9 +1,11 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAuth } from '../context/useAuth'
 
 function ProtectedRoute({ children, message }: { children: ReactNode; message?: string }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
+
   if (loading) {
     return (
       <div className="auth-page">
@@ -13,7 +15,15 @@ function ProtectedRoute({ children, message }: { children: ReactNode; message?: 
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace state={message ? { message } : undefined} />
+  if (!user) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ ...(message ? { message } : {}), from: location }}
+      />
+    )
+  }
   return <>{children}</>
 }
 

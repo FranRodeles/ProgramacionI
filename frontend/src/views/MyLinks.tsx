@@ -5,9 +5,9 @@ import Footer from '../components/Footer'
 import { useAuth } from '../context/useAuth'
 import { fetchUserQrs, patchQr, deleteQr, fetchQrAnalytics } from '../api/qr'
 import type { QRCodeData, ResourceAnalytics } from '../api/qr'
-import { apiFetch } from '../api/client'
 import { fetchUserShortUrls, patchShortUrl, deleteShortUrl, fetchShortUrlAnalytics } from '../api/shortUrl'
 import type { ShortUrlData } from '../api/shortUrl'
+import QRCodeStyling from 'qr-code-styling'
 
 type SortOption = 'default' | 'interactions_desc' | 'interactions_asc' | 'date_desc' | 'date_asc'
 
@@ -53,17 +53,35 @@ export default function MyLinks() {
 
   const handleDownloadPng = async (qr: QRCodeData) => {
     try {
-      const res = await apiFetch(`/api/qr/${qr.id}/image/`, { method: 'GET' })
-      if (!res.ok) throw new Error('Error al descargar la imagen')
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${qr.slug}.png`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(url)
+      const redirectUrl = qr.qr_redirect_url || `${window.location.origin}/q/${qr.slug}/`
+      const styling = new QRCodeStyling({
+        width: 1000,
+        height: 1000,
+        margin: 20,
+        data: redirectUrl,
+        dotsOptions: {
+          color: qr.customization?.dot_color || '#000000',
+          type: qr.customization?.dot_style || 'square',
+        },
+        cornersSquareOptions: {
+          color: qr.customization?.dot_color || '#000000',
+          type: qr.customization?.corner_style || 'square',
+        },
+        cornersDotOptions: {
+          color: qr.customization?.dot_color || '#000000',
+          type: qr.customization?.corner_style || 'square',
+        },
+        backgroundOptions: {
+          color: qr.customization?.background_color || '#ffffff',
+        },
+        image: qr.customization?.logo || undefined,
+        imageOptions: {
+          crossOrigin: 'anonymous',
+          margin: 10,
+          imageSize: 0.4,
+        },
+      })
+      await styling.download({ name: qr.slug || 'qr', extension: 'png' })
     } catch (err: any) {
       alert(err.message || 'No se pudo descargar el QR')
     }
@@ -72,6 +90,17 @@ export default function MyLinks() {
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && analyticsType) {
+        setAnalyticsType(null)
+        setAnalyticsData(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [analyticsType])
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
@@ -395,14 +424,22 @@ export default function MyLinks() {
                                 <span className="badge bg-secondary-subtle text-secondary border small">
                                   {qr.destination_type}
                                 </span>
-                                <span
-                                  className={`badge ${qr.is_active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}`}
+                                <button
+                                  type="button"
+                                  className={`badge border-0 ${qr.is_active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}`}
                                   style={{ cursor: 'pointer' }}
                                   onClick={() => handleToggleQr(qr)}
-                                  title="Hacé clic para activar/desactivar"
+                                  title="Hacé clic para activar o pausar"
+                                  aria-label={`Estado: ${qr.is_active ? 'Activo' : 'Pausado'}. Alternar`}
                                 >
                                   {qr.is_active ? '● Activo' : '○ Pausado'}
-                                </span>
+                                </button>
+                                {user?.role === 'ADMIN' && qr.user_username && (
+                                  <span className="badge bg-secondary-subtle text-secondary border small">
+                                    <i className="bi bi-person me-1" />
+                                    {qr.user_username}
+                                  </span>
+                                )}
                               </div>
                               <div className="text-muted small mt-1">
                                 Enlace corto:{' '}
@@ -504,14 +541,22 @@ export default function MyLinks() {
                           <div>
                             <div className="d-flex align-items-center gap-2 flex-wrap">
                               <h5 className="fw-bold mb-0" style={{ color: '#2d3a1c' }}>{short.name}</h5>
-                              <span
-                                className={`badge ${short.is_active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}`}
+                              <button
+                                type="button"
+                                className={`badge border-0 ${short.is_active ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}`}
                                 style={{ cursor: 'pointer' }}
                                 onClick={() => handleToggleShort(short)}
-                                title="Hacé clic para activar/desactivar"
+                                title="Hacé clic para activar o pausar"
+                                aria-label={`Estado: ${short.is_active ? 'Activo' : 'Pausado'}. Alternar`}
                               >
                                 {short.is_active ? '● Activo' : '○ Pausado'}
-                              </span>
+                              </button>
+                              {user?.role === 'ADMIN' && short.user_username && (
+                                <span className="badge bg-secondary-subtle text-secondary border small">
+                                  <i className="bi bi-person me-1" />
+                                  {short.user_username}
+                                </span>
+                              )}
                             </div>
                             <div className="text-muted small mt-1">
                               Enlace corto:{' '}
@@ -583,6 +628,12 @@ export default function MyLinks() {
           tabIndex={-1}
           style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1060 }}
           role="dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setAnalyticsType(null)
+              setAnalyticsData(null)
+            }
+          }}
         >
           <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content rounded-4 border-0 shadow">
@@ -647,10 +698,10 @@ export default function MyLinks() {
                             </tr>
                           </thead>
                           <tbody>
-                            {analyticsData.events.map((event, idx) => {
+                            {analyticsData.events.map((event) => {
                               const date = new Date(event.scanned_at || event.clicked_at || '')
                               return (
-                                <tr key={idx} className="small">
+                                <tr key={event.id} className="small">
                                   <td>
                                     {isNaN(date.getTime())
                                       ? 'Reciente'
@@ -664,7 +715,7 @@ export default function MyLinks() {
                                   </td>
                                   <td>
                                     <i className="bi bi-geo-alt me-1 text-danger" />
-                                    {event.country || 'Argentina'}{event.city ? `, ${event.city}` : ''}
+                                    {event.country || 'Desconocido'}{event.city && event.city !== 'Desconocido' ? `, ${event.city}` : ''}
                                   </td>
                                   <td>
                                     <span className="badge bg-light text-dark border">

@@ -57,12 +57,14 @@ class ShortUrlSerializer(serializers.ModelSerializer):
         return request.build_absolute_uri(path)
 
     def validate_slug(self, value):
+        instance = getattr(self, "instance", None)
         if not value or not value.strip():
+            if instance:
+                return instance.slug
             return ""
         cleaned = slugify(value.strip())
         if not cleaned:
             raise serializers.ValidationError("El enlace personalizado ingresado no es válido.")
-        instance = getattr(self, "instance", None)
         qs = ShortUrl.objects.filter(slug=cleaned)
         if instance:
             qs = qs.exclude(pk=instance.pk)
@@ -92,3 +94,30 @@ class ShortUrlClickEventSerializer(serializers.ModelSerializer):
             "user_agent",
         )
         read_only_fields = ("id", "clicked_at", "short_slug")
+
+
+class ShortUrlAnalyticsEventSerializer(serializers.ModelSerializer):
+    """Serializer para eventos individuales en el endpoint de analíticas de URL corta."""
+
+    class Meta:
+        model = ShortUrlClickEvent
+        fields = (
+            "id",
+            "clicked_at",
+            "country",
+            "city",
+            "device_type",
+            "os",
+            "browser",
+        )
+
+
+class ShortUrlAnalyticsResponseSerializer(serializers.Serializer):
+    """Schema de respuesta para el endpoint de analíticas de URL corta."""
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    slug = serializers.CharField()
+    total_clicks = serializers.IntegerField()
+    events = ShortUrlAnalyticsEventSerializer(many=True)
+

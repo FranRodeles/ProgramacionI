@@ -29,8 +29,15 @@ export default function QrPreview({ data, customization, qrCodeRef }: QrPreviewP
       if (qrCodeRef) {
         qrCodeRef.current = localQrCode.current
       }
+    }
+    if (ref.current) {
+      ref.current.innerHTML = ''
+      localQrCode.current.append(ref.current)
+    }
+
+    return () => {
       if (ref.current) {
-        localQrCode.current.append(ref.current)
+        ref.current.innerHTML = ''
       }
     }
   }, [data, qrCodeRef])
@@ -44,6 +51,10 @@ export default function QrPreview({ data, customization, qrCodeRef }: QrPreviewP
           type: (customization?.dot_style as any) || 'square',
         },
         cornersSquareOptions: {
+          type: (customization?.corner_style as any) || 'square',
+          color: customization?.dot_color || '#000000',
+        },
+        cornersDotOptions: {
           type: (customization?.corner_style as any) || 'square',
           color: customization?.dot_color || '#000000',
         },

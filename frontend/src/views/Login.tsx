@@ -13,7 +13,8 @@ function Login() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  if (user) return <Navigate to="/" replace />
+  const from = location.state?.from?.pathname || '/'
+  if (user) return <Navigate to={from} replace />
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()

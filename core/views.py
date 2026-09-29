@@ -57,8 +57,8 @@ def _parse_client_info(request):
     else:
         browser = "Desconocido"
 
-    country = request.META.get("HTTP_CF_IPCOUNTRY") or "Argentina"
-    city = request.META.get("HTTP_CF_IPCITY") or "Mendoza"
+    country = request.META.get("HTTP_CF_IPCOUNTRY") or "Desconocido"
+    city = request.META.get("HTTP_CF_IPCITY") or "Desconocido"
 
     return {
         "device_type": device_type,
@@ -87,7 +87,11 @@ def qr_redirect(request, slug):
     qr_code = _get_active_or_404(QRCode, slug, "QR no encontrado o inactivo")
     _track_request(request, qr_code, QRScanEvent, "total_scans", "qr_code")
 
-    destination = resolve_qr_destination(qr_code)
+    try:
+        destination = resolve_qr_destination(qr_code)
+    except ValueError as exc:
+        raise Http404("Destino de QR inválido") from exc
+
     if qr_code.destination_type == "TEXT":
         return HttpResponse(qr_code.destination_value, content_type="text/plain; charset=utf-8")
 
