@@ -49,7 +49,7 @@ export default function CreateQr() {
           destination_type: type,
           destination_value: value,
           slug: formattedSlug,
-          is_active: false,
+          is_active: true,
         })
         setQrCode(created)
       }
@@ -114,10 +114,11 @@ export default function CreateQr() {
     setError('')
     setLoading(true)
     try {
-      await patchQr(qrCode.id, { is_active: true })
+      const updated = await patchQr(qrCode.id, { is_active: true })
+      setQrCode(updated)
       setStep(4) // success view
     } catch (err: any) {
-      setError(err.message || 'Error activando QR')
+      setError(err.message || 'Error guardando QR')
     } finally {
       setLoading(false)
     }
@@ -306,7 +307,7 @@ export default function CreateQr() {
         {step === 3 && qrCode && (
           <div>
             <h1 className="auth-title">Confirmar</h1>
-            <p className="auth-subtitle">Paso 3: Activar QR</p>
+            <p className="auth-subtitle">Paso 3: Confirmación y prueba</p>
             {error && <div className="alert alert-danger auth-alert">{error}</div>}
 
             <QrPreview 
@@ -316,7 +317,7 @@ export default function CreateQr() {
             
             <p className="text-center mt-3 mb-4">
               <strong>URL corta:</strong> <br />
-              <a href={qrCode.qr_redirect_url} target="_blank" rel="noreferrer" className="auth-link">{qrCode.qr_redirect_url}</a>
+              <a href={qrCode.qr_redirect_url} target="_blank" rel="noreferrer" className="auth-link font-monospace">{qrCode.qr_redirect_url}</a>
             </p>
 
             <div className="d-flex gap-2">
@@ -330,7 +331,7 @@ export default function CreateQr() {
                 Volver
               </button>
               <button onClick={handleStep3} className="btn auth-submit w-50" disabled={loading}>
-                {loading ? 'Activando...' : 'Activar y Finalizar'}
+                {loading ? 'Finalizando...' : 'Confirmar y Finalizar'}
               </button>
             </div>
           </div>
@@ -346,6 +347,11 @@ export default function CreateQr() {
               customization={qrCode.customization} 
               qrCodeRef={qrCodeRef}
             />
+
+            <p className="text-center mt-3 mb-2">
+              <strong>URL corta:</strong> <br />
+              <a href={qrCode.qr_redirect_url} target="_blank" rel="noreferrer" className="auth-link font-monospace">{qrCode.qr_redirect_url}</a>
+            </p>
 
             <div className="d-flex gap-2 justify-content-center mt-4">
               <button onClick={handleDownload} className="btn auth-submit">

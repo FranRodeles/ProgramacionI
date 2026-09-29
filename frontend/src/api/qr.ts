@@ -21,7 +21,7 @@ export async function createQr(data: {
   destination_type: string
   destination_value: string
   slug?: string
-  is_active: boolean
+  is_active?: boolean
 }): Promise<QRCodeData> {
   const res = await apiFetch('/api/qr/', {
     method: 'POST',
