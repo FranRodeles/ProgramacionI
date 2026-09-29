@@ -1,8 +1,12 @@
+from django.core.cache import cache
+from django.db import connection
 from django.test import TestCase, Client
 from rest_framework.test import APIClient
+from unittest.mock import patch
 
 from core.models.qrcode import QRCode, QRScanEvent
 from core.models.shorturl import ShortUrl, ShortUrlClickEvent
+from core.throttles import RedirectRateThrottle
 from users.models import User
 
 
@@ -432,4 +436,82 @@ class CodeReviewFixesTest(TestCase):
         c = Client()
         response = c.get(f"/q/{qr.slug}/")
         self.assertEqual(response.status_code, 404)
+
+
+class FieldEncryptionTest(TestCase):
+    """Verifica que IP y user agent se cifren en reposo (en la base de datos)."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="enc_owner", password="Test123456"
+        )
+        self.qr = QRCode.objects.create(
+            user=self.owner,
+            name="QR Encriptado",
+            slug="enc-qr",
+            destination_type="WEB",
+            destination_value="https://example.com",
+        )
+
+    def test_ip_address_is_encrypted_at_rest(self):
+        event = QRScanEvent.objects.create(
+            qr_code=self.qr, ip_address="203.0.113.7"
+        )
+        event.refresh_from_db()
+        self.assertEqual(event.ip_address, "203.0.113.7")
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT ip_address FROM qr_scan_events WHERE id = %s", [event.id]
+            )
+            raw = cursor.fetchone()[0]
+
+        self.assertNotEqual(raw, "203.0.113.7")
+        self.assertNotIn("203.0.113.7", raw)
+
+    def test_user_agent_is_encrypted_at_rest(self):
+        ua = "Mozilla/5.0 (Linux; Android 13) Chrome/120.0"
+        event = QRScanEvent.objects.create(
+            qr_code=self.qr, ip_address="198.51.100.4", user_agent=ua
+        )
+        event.refresh_from_db()
+        self.assertEqual(event.user_agent, ua)
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT user_agent FROM qr_scan_events WHERE id = %s", [event.id]
+            )
+            raw = cursor.fetchone()[0]
+
+        self.assertNotEqual(raw, ua)
+        self.assertNotIn("Android", raw)
+
+
+class RedirectThrottlingTest(TestCase):
+    """Verifica que las redirecciones públicas estén limitadas por IP."""
+
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username="throttle_owner", password="Test123456"
+        )
+        self.qr = QRCode.objects.create(
+            user=self.owner,
+            name="QR Throttle",
+            slug="throttle-qr",
+            destination_type="WEB",
+            destination_value="https://example.com",
+        )
+        self.client = Client()
+        cache.clear()
+
+    def test_redirect_is_throttled_after_limit(self):
+        with patch.object(
+            RedirectRateThrottle, "THROTTLE_RATES", {"redirect": "3/minute"}
+        ):
+            for _ in range(3):
+                res = self.client.get("/q/throttle-qr/")
+                self.assertEqual(res.status_code, 302)
+
+            res = self.client.get("/q/throttle-qr/")
+            self.assertEqual(res.status_code, 429)
 
