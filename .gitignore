@@ -1,6 +1,8 @@
 .venv
 user.txt
 .env
+.env.*
+!.env.example
 AGENTS.md
 context_agent.md
 .github/
