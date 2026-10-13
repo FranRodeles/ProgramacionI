@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from core.fields import EncryptedTextField
+
 
 class ShortUrl(models.Model):
     """URL corta creada por un usuario.
@@ -52,13 +54,13 @@ class ShortUrlClickEvent(models.Model):
         related_name="click_events",
     )
     clicked_at = models.DateTimeField(auto_now_add=True)
-    ip_address = models.GenericIPAddressField()
+    ip_address = EncryptedTextField()
     country = models.CharField(max_length=100, blank=True)
     city = models.CharField(max_length=100, blank=True)
     device_type = models.CharField(max_length=50, blank=True)
     os = models.CharField(max_length=100, blank=True)
     browser = models.CharField(max_length=100, blank=True)
-    user_agent = models.TextField(blank=True)
+    user_agent = EncryptedTextField(blank=True)
 
     class Meta:
         """Ordena por fecha y acelera reportes por URL y ubicación."""

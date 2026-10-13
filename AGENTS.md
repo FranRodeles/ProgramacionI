@@ -15,7 +15,7 @@
 source .venv/bin/activate
 
 # Install dependencies (if needed)
-pip install -r requeriments.txt  # Note: typo "requeriments" preserved in repo
+pip install -r requirements.txt
 ```
 
 ### Django Management
@@ -81,7 +81,7 @@ Add API endpoints pattern (to be implemented):
 
 ## Common Pitfalls
 
-1. **Typo in dependencies**: `requeriments.txt` not `requirements.txt`—keep the typo in filenames
+1. **Dependencies**: use the standard `requirements.txt` (renamed from `requeriments.txt` for deployment)
 2. **INSTALLED_APPS order**: `'core'` must be after Django apps but DRF apps order doesn't matter
 3. **Migrations**: Always run `makemigrations` → `migrate` sequence after model edits
 4. **Empty models**: `core/models.py` and `core/views.py` are placeholders; agents often overlook that nothing is implemented

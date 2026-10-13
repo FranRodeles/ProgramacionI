@@ -2,10 +2,19 @@ from django.db import transaction
 from django.db.models import F
 from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
+from rest_framework.decorators import api_view, throttle_classes
+from rest_framework.response import Response
 
 from core.models.qrcode import QRCode, QRScanEvent
 from core.models.shorturl import ShortUrl, ShortUrlClickEvent
 from core.qr_utils import resolve_qr_destination
+from core.throttles import RedirectRateThrottle
+
+
+@api_view(['GET'])
+def health(request):
+    """Health check simple para verificar que la API está viva en producción."""
+    return Response({"status": "ok", "service": "api"})
 
 
 def _get_active_or_404(model, slug, message):
@@ -69,6 +78,20 @@ def _parse_client_info(request):
     }
 
 
+def _get_client_ip(request):
+    """Devuelve la IP real del cliente.
+
+    Detrás de un proxy/load balancer (Railway/Render), ``REMOTE_ADDR`` es la
+    IP del proxy, no la del usuario. Se lee la última entrada de
+    ``X-Forwarded-For`` (la que agrega el proxy confiable) con fallback a
+    ``REMOTE_ADDR`` para desarrollo local.
+    """
+    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    if xff:
+        return xff.split(",")[-1].strip()
+    return request.META.get("REMOTE_ADDR", "127.0.0.1")
+
+
 def _track_request(request, obj, event_model, count_field, relation_name):
     client_info = _parse_client_info(request)
     with transaction.atomic():
@@ -76,13 +99,15 @@ def _track_request(request, obj, event_model, count_field, relation_name):
         event_model.objects.create(
             **{
                 relation_name: obj,
-                "ip_address": request.META.get("REMOTE_ADDR", "127.0.0.1"),
+                "ip_address": _get_client_ip(request),
                 "user_agent": request.META.get("HTTP_USER_AGENT", ""),
                 **client_info,
             }
         )
 
 
+@api_view(['GET'])
+@throttle_classes([RedirectRateThrottle])
 def qr_redirect(request, slug):
     qr_code = _get_active_or_404(QRCode, slug, "QR no encontrado o inactivo")
     _track_request(request, qr_code, QRScanEvent, "total_scans", "qr_code")
@@ -98,6 +123,8 @@ def qr_redirect(request, slug):
     return redirect(destination)
 
 
+@api_view(['GET'])
+@throttle_classes([RedirectRateThrottle])
 def shorturl_redirect(request, slug):
     short_url = _get_active_or_404(ShortUrl, slug, "URL corta no encontrada o inactiva")
     _track_request(request, short_url, ShortUrlClickEvent, "total_clicks", "short_url")
