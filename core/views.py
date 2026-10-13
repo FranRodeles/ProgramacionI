@@ -78,6 +78,20 @@ def _parse_client_info(request):
     }
 
 
+def _get_client_ip(request):
+    """Devuelve la IP real del cliente.
+
+    Detrás de un proxy/load balancer (Railway/Render), ``REMOTE_ADDR`` es la
+    IP del proxy, no la del usuario. Se lee la última entrada de
+    ``X-Forwarded-For`` (la que agrega el proxy confiable) con fallback a
+    ``REMOTE_ADDR`` para desarrollo local.
+    """
+    xff = request.META.get("HTTP_X_FORWARDED_FOR")
+    if xff:
+        return xff.split(",")[-1].strip()
+    return request.META.get("REMOTE_ADDR", "127.0.0.1")
+
+
 def _track_request(request, obj, event_model, count_field, relation_name):
     client_info = _parse_client_info(request)
     with transaction.atomic():
@@ -85,7 +99,7 @@ def _track_request(request, obj, event_model, count_field, relation_name):
         event_model.objects.create(
             **{
                 relation_name: obj,
-                "ip_address": request.META.get("REMOTE_ADDR", "127.0.0.1"),
+                "ip_address": _get_client_ip(request),
                 "user_agent": request.META.get("HTTP_USER_AGENT", ""),
                 **client_info,
             }

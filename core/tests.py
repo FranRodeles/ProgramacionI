@@ -1,6 +1,7 @@
 from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
-from django.test import TestCase, Client
+from django.test import TestCase, Client, RequestFactory, override_settings
 from rest_framework.test import APIClient
 from unittest.mock import patch
 
@@ -485,6 +486,31 @@ class FieldEncryptionTest(TestCase):
 
         self.assertNotEqual(raw, ua)
         self.assertNotIn("Android", raw)
+
+    def test_invalid_encryption_key_raises_clear_error(self):
+        with override_settings(FIELD_ENCRYPTION_KEY="cambiar-por-clave-fernet"):
+            with self.assertRaises(ImproperlyConfigured):
+                QRScanEvent.objects.create(
+                    qr_code=self.qr, ip_address="1.2.3.4"
+                )
+
+
+class ClientIpExtractionTest(TestCase):
+    """Verifica la extracción de la IP real detrás de un proxy/LB."""
+
+    def test_x_forwarded_for_is_preferred(self):
+        from core.views import _get_client_ip
+
+        req = RequestFactory().get(
+            "/", HTTP_X_FORWARDED_FOR="203.0.113.9, 10.0.0.1"
+        )
+        self.assertEqual(_get_client_ip(req), "10.0.0.1")
+
+    def test_remote_addr_is_fallback(self):
+        from core.views import _get_client_ip
+
+        req = RequestFactory().get("/", REMOTE_ADDR="198.51.100.7")
+        self.assertEqual(_get_client_ip(req), "198.51.100.7")
 
 
 class RedirectThrottlingTest(TestCase):

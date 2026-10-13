@@ -182,6 +182,9 @@ REST_FRAMEWORK = {
         'register': '20/hour',
         'redirect': '120/minute',
     },
+    # Detrás de un proxy/LB (Railway/Render), DRF confía en X-Forwarded-For.
+    # Ajustar si se agrega otro proxy delante (ej. Cloudflare -> 2).
+    'NUM_PROXIES': 1,
 }
 
 # SimpleJWT Configuration
