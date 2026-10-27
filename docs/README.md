@@ -1,14 +1,13 @@
-# Documentación Técnica, Diagramas UML y Colección Postman — QRedirect
+# Documentación Técnica: Diagrama de Clases UML y Colección Postman — QRedirect
 
-Esta carpeta contiene los artefactos de arquitectura y pruebas de API del proyecto **QRedirect**:
+Esta carpeta contiene el diagrama de clases UML y la colección de pruebas de API del proyecto **QRedirect**:
 
-## 1. Diagramas PlantUML (`.puml`)
+## 1. Diagrama de Clases PlantUML (`qredirect.puml`)
 
-- **[`qredirect.puml`](./qredirect.puml)**: Diagrama completo de clases, modelo de dominio (`User`, `QRCode`, `QRScanEvent`, `ShortUrl`, `ShortUrlClickEvent`), cifrado en reposo (`EncryptedTextField`), serializadores, ViewSets, permisos RBAC (`IsAdmin`, `IsOwnerOrAdmin`) y throttles de seguridad.
-- **[`qredirect_secuencia.puml`](./qredirect_secuencia.puml)**: Diagrama de secuencia del flujo completo de autenticación JWT, creación de QR dinámico, redirección pública atómica con cifrado Fernet y consulta de analíticas anonimizadas.
+- **[`qredirect.puml`](./qredirect.puml)**: Diagrama de clases UML del dominio de **QRedirect** (`User`, `QRCode`, `QRScanEvent`, `ShortUrl`, `ShortUrlClickEvent` y las enumeraciones `Role` y `DestinationType`), con sus atributos, métodos, multiplicidades (`1` a `0..*`) y relaciones de asociación y composición.
 
-### Cómo visualizar los diagramas
-- En **VS Code**: instalar la extensión *PlantUML* (`jebbs.plantuml`) y presionar `Alt + D` sobre cualquiera de los archivos `.puml`.
+### Cómo visualizar el diagrama
+- En **VS Code**: instalar la extensión *PlantUML* (`jebbs.plantuml`) y presionar `Alt + D` sobre `docs/qredirect.puml`.
 - Online: copiar el contenido en [https://www.plantuml.com/plantuml](https://www.plantuml.com/plantuml).
 
 ---
