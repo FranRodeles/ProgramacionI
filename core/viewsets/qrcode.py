@@ -13,6 +13,7 @@ from core.serializers.qrcode import (
     QRAnalyticsResponseSerializer,
 )
 from core.utils import generate_unique_slug
+from users.models import User
 from users.permissions import IsOwnerOrAdmin
 
 
@@ -26,7 +27,7 @@ class QRCodeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == "ADMIN":
+        if user.role == User.Role.ADMIN:
             queryset = QRCode.objects.all()
         else:
             queryset = QRCode.objects.filter(user=user)
