@@ -541,3 +541,94 @@ class RedirectThrottlingTest(TestCase):
             res = self.client.get("/q/throttle-qr/")
             self.assertEqual(res.status_code, 429)
 
+
+class QRSecurityAndValidationTest(TestCase):
+    """Tests para validación estricta de customization, destinos y prevención de N+1."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="sec_user", password="StrongPassword123!"
+        )
+        self.admin = User.objects.create_superuser(
+            username="sec_admin", password="StrongPassword123!", role=User.Role.ADMIN
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_customization_rejects_invalid_color(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        serializer = QRCodeSerializer(
+            data={
+                "name": "QR Color Malo",
+                "destination_type": "WEB",
+                "destination_value": "https://example.com",
+                "customization": {"dot_color": "not-a-valid-color"},
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("customization", serializer.errors)
+
+    def test_customization_rejects_svg_or_external_logo(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        serializer = QRCodeSerializer(
+            data={
+                "name": "QR Logo SVG",
+                "destination_type": "WEB",
+                "destination_value": "https://example.com",
+                "customization": {"logo": "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="},
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("customization", serializer.errors)
+
+    def test_build_qr_png_bytes_fallback_on_invalid_color_in_db(self):
+        from core.qr_utils import build_qr_png_bytes
+
+        png = build_qr_png_bytes(
+            "https://example.com",
+            customization={"dot_color": "invalid-color-name"},
+        )
+        self.assertTrue(png.startswith(b"\x89PNG"))
+
+    def test_email_and_web_destination_validation(self):
+        from core.serializers.qrcode import QRCodeSerializer
+
+        bad_email = QRCodeSerializer(
+            data={
+                "name": "Bad Email",
+                "destination_type": "EMAIL",
+                "destination_value": "no-es-un-email",
+            }
+        )
+        self.assertFalse(bad_email.is_valid())
+        self.assertIn("destination_value", bad_email.errors)
+
+        good_email = QRCodeSerializer(
+            data={
+                "name": "Good Email",
+                "destination_type": "EMAIL",
+                "destination_value": "contacto@empresa.com",
+            }
+        )
+        self.assertTrue(good_email.is_valid(), good_email.errors)
+
+    def test_qr_list_select_related_avoids_n_plus_1(self):
+        for i in range(5):
+            u = User.objects.create_user(username=f"u_{i}", password="StrongPassword123!")
+            QRCode.objects.create(
+                user=u,
+                name=f"QR {i}",
+                slug=f"slug-{i}",
+                destination_type="WEB",
+                destination_value="https://example.com",
+            )
+        self.client.force_authenticate(user=self.admin)
+        # 1 query para COUNT (paginación) + 1 query conSELECT ... INNER JOIN users
+        with self.assertNumQueries(2):
+            res = self.client.get("/api/qr/")
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(len(res.json()["results"]), 5)
+
+

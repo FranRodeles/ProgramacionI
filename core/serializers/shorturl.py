@@ -49,7 +49,7 @@ class ShortUrlSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Ingresá una URL web válida (ej: https://ejemplo.com).")
         return url
 
-    def get_short_url(self, obj):
+    def get_short_url(self, obj) -> str:
         request = self.context.get("request")
         path = f"/s/{obj.slug}/"
         if request is None:

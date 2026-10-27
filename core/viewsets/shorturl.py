@@ -25,10 +25,11 @@ class ShortUrlViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = ShortUrl.objects.select_related("user")
         if user.role == User.Role.ADMIN:
-            queryset = ShortUrl.objects.all()
+            queryset = base_qs.all()
         else:
-            queryset = ShortUrl.objects.filter(user=user)
+            queryset = base_qs.filter(user=user)
 
         search = self.request.query_params.get("search")
         if search:

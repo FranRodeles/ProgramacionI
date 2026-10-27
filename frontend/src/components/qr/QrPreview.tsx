@@ -19,6 +19,7 @@ export default function QrPreview({ data, customization, qrCodeRef }: QrPreviewP
   const localQrCode = useRef<QRCodeStyling | null>(null)
 
   useEffect(() => {
+    const container = ref.current
     if (!localQrCode.current) {
       localQrCode.current = new QRCodeStyling({
         width: 300,
@@ -30,14 +31,14 @@ export default function QrPreview({ data, customization, qrCodeRef }: QrPreviewP
         qrCodeRef.current = localQrCode.current
       }
     }
-    if (ref.current) {
-      ref.current.innerHTML = ''
-      localQrCode.current.append(ref.current)
+    if (container) {
+      container.innerHTML = ''
+      localQrCode.current.append(container)
     }
 
     return () => {
-      if (ref.current) {
-        ref.current.innerHTML = ''
+      if (container) {
+        container.innerHTML = ''
       }
     }
   }, [data, qrCodeRef])

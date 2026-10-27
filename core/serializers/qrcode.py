@@ -1,9 +1,23 @@
 import re
+from django.core.validators import EmailValidator, URLValidator
 from django.utils.text import slugify
 from rest_framework import serializers
 
 from core.models.qrcode import QRCode, QRScanEvent
 from core.qr_utils import build_qr_redirect_path, build_qr_image_path
+
+HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+ALLOWED_NAMED_COLORS = {"black", "white"}
+ALLOWED_LOGO_PREFIXES = (
+    "data:image/png;base64,",
+    "data:image/jpeg;base64,",
+    "data:image/jpg;base64,",
+    "data:image/webp;base64,",
+)
+
+
+def _is_valid_color(color: str) -> bool:
+    return color.lower() in ALLOWED_NAMED_COLORS or bool(HEX_COLOR_RE.match(color))
 
 
 class QRCodeSerializer(serializers.ModelSerializer):
@@ -58,32 +72,80 @@ class QRCodeSerializer(serializers.ModelSerializer):
         return cleaned
 
     def validate_customization(self, value):
+        if value is None:
+            return {}
         if not isinstance(value, dict):
-            return value
+            raise serializers.ValidationError("El formato de personalización debe ser un objeto JSON.")
+
+        for color_key in ("dot_color", "background_color"):
+            color_val = value.get(color_key)
+            if color_val is not None and color_val != "":
+                if not isinstance(color_val, str) or not _is_valid_color(color_val.strip()):
+                    raise serializers.ValidationError(
+                        f"El campo '{color_key}' debe ser un color hexadecimal válido (ej: #000000)."
+                    )
+
         logo = value.get("logo")
-        if logo and isinstance(logo, str):
+        if logo is not None and logo != "":
+            if not isinstance(logo, str):
+                raise serializers.ValidationError("El logo debe ser una cadena en formato Data URI.")
             # Base64 para ~500 KB excede los 750.000 caracteres
             if len(logo) > 800_000:
                 raise serializers.ValidationError("El logo no debe superar los 500 KB.")
+            if not logo.startswith(ALLOWED_LOGO_PREFIXES):
+                raise serializers.ValidationError(
+                    "El logo debe ser una imagen PNG, JPEG o WEBP codificada en base64."
+                )
         return value
 
     def validate(self, attrs):
         dest_type = attrs.get("destination_type", getattr(self.instance, "destination_type", None))
         dest_value = attrs.get("destination_value", getattr(self.instance, "destination_value", None))
-        if dest_type == "WHATSAPP":
-            digits = re.sub(r"[^\d]", "", dest_value or "")
-            if not digits and not (dest_value or "").startswith(("http://", "https://")):
+        raw_value = (dest_value or "").strip()
+
+        if dest_type == "WEB" and "destination_value" in attrs:
+            candidate = raw_value if raw_value.startswith(("http://", "https://")) else f"https://{raw_value}"
+            validator = URLValidator(schemes=["http", "https"])
+            try:
+                validator(candidate)
+            except Exception as exc:
+                raise serializers.ValidationError(
+                    {"destination_value": "Ingresá una URL web válida (ej: https://ejemplo.com)."}
+                ) from exc
+
+        elif dest_type == "EMAIL" and "destination_value" in attrs:
+            email_part = raw_value[7:] if raw_value.startswith("mailto:") else raw_value
+            email_part = email_part.split("?")[0].strip()
+            validator = EmailValidator()
+            try:
+                validator(email_part)
+            except Exception as exc:
+                raise serializers.ValidationError(
+                    {"destination_value": "Ingresá una dirección de correo electrónico válida."}
+                ) from exc
+
+        elif dest_type == "PHONE" and "destination_value" in attrs:
+            digits = re.sub(r"[^\d]", "", raw_value)
+            if len(digits) < 3:
+                raise serializers.ValidationError(
+                    {"destination_value": "Ingresá un número de teléfono válido."}
+                )
+
+        elif dest_type == "WHATSAPP":
+            digits = re.sub(r"[^\d]", "", raw_value)
+            if not digits and not raw_value.startswith(("http://", "https://")):
                 raise serializers.ValidationError({"destination_value": "Ingresá un número de WhatsApp válido."})
+
         return attrs
 
-    def get_qr_redirect_url(self, obj):
+    def get_qr_redirect_url(self, obj) -> str:
         request = self.context.get("request")
         path = build_qr_redirect_path(obj)
         if request is None:
             return path
         return request.build_absolute_uri(path)
 
-    def get_qr_image_url(self, obj):
+    def get_qr_image_url(self, obj) -> str:
         request = self.context.get("request")
         path = build_qr_image_path(obj)
         if request is None:
