@@ -1,0 +1,47 @@
+@startuml QRedirect_Sequence_Diagram
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Inter, Arial, sans-serif"
+
+title QRedirect — Flujo de Creación, Redirección Dinámica y Registro de Analíticas Cifradas
+
+actor "Usuario Creador" as Owner
+actor "Visitante Público" as Visitor
+participant "Frontend SPA\n(React + Vite)" as SPA
+participant "API REST + JWT\n(Django + DRF)" as API
+participant "Fernet Crypto\n(EncryptedTextField)" as Crypto
+database "Base de Datos\n(PostgreSQL / SQLite)" as DB
+
+== 1. Autenticación y Creación de QR Dinámico ==
+Owner -> SPA : Inicia sesión (username, password)
+SPA -> API : POST /api/token/
+API -> DB : Verifica credenciales
+API --> SPA : 200 OK { access, refresh }
+
+Owner -> SPA : Crea QR (name, type="WEB", value="https://miweb.com", customization)
+SPA -> API : POST /api/qr/ (Bearer <access>)
+API -> API : Valida destino, colores hex y genera slug único
+API -> DB : INSERT INTO qr_codes (slug="mi-menu", total_scans=0, ...)
+API --> SPA : 201 Created { id, slug, qr_redirect_url: ".../q/mi-menu/" }
+
+== 2. Escaneo Público y Redirección Atómica ==
+Visitor -> API : GET /q/mi-menu/ (Escanea el QR)
+API -> API : RedirectRateThrottle (120/min por IP)
+API -> DB : SELECT * FROM qr_codes WHERE slug="mi-menu" AND is_active=True
+
+group transaction.atomic()
+    API -> DB : UPDATE qr_codes SET total_scans = total_scans + 1
+    API -> Crypto : Cifra ip_address y user_agent con clave Fernet
+    Crypto -> DB : INSERT INTO qr_scan_events (ip_address=cifrado, country, device_type, os, browser)
+end
+
+API --> Visitor : 302 Found (Location: https://miweb.com)
+
+== 3. Consulta de Analíticas Anonimizadas ==
+Owner -> SPA : Abre modal de Analíticas del QR
+SPA -> API : GET /api/qr/{id}/analytics/ (Bearer <access>)
+API -> API : Verifica IsOwnerOrAdmin
+API -> DB : SELECT últimos 100 eventos (omite ip_address y user_agent en respuesta)
+API --> SPA : 200 OK { total_scans: 1, events: [{ scanned_at, country, device_type, os, browser }] }
+
+@enduml
