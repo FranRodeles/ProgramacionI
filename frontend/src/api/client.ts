@@ -1,4 +1,4 @@
-import { getAccessToken, getRefreshToken, setAccessToken, clearTokens } from './tokenStorage'
+import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearTokens } from './tokenStorage'
 
 const BASE_URL: string = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/+$/, '')
 
@@ -28,9 +28,12 @@ async function doRefresh(): Promise<boolean> {
       body: JSON.stringify({ refresh }),
     })
     if (!res.ok) return false
-    const data = (await res.json()) as { access?: string }
+    const data = (await res.json()) as { access?: string; refresh?: string }
     if (!data.access) return false
     setAccessToken(data.access)
+    if (data.refresh) {
+      setRefreshToken(data.refresh)
+    }
     return true
   } catch {
     return false

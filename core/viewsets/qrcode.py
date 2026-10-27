@@ -27,10 +27,11 @@ class QRCodeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = QRCode.objects.select_related("user")
         if user.role == User.Role.ADMIN:
-            queryset = QRCode.objects.all()
+            queryset = base_qs.all()
         else:
-            queryset = QRCode.objects.filter(user=user)
+            queryset = base_qs.filter(user=user)
 
         search = self.request.query_params.get("search")
         if search:

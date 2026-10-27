@@ -1,0 +1,113 @@
+@startuml Diagrama_de_Clases_QRedirect
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam linetype ortho
+skinparam defaultFontName "Arial"
+
+title Diagrama de Clases — QRedirect
+
+enum Role {
+    ADMIN
+    USER
+}
+
+enum DestinationType {
+    WEB
+    EMAIL
+    PHONE
+    WHATSAPP
+    MAP
+    TEXT
+}
+
+class User {
+    - id : int
+    - username : str
+    - first_name : str
+    - last_name : str
+    - email : str
+    - password : str
+    - role : Role
+    - is_active : bool
+    - is_staff : bool
+    - created_at : datetime
+    - updated_at : datetime
+    --
+    + set_password(raw_password : str) : void
+    + check_password(raw_password : str) : bool
+    + __str__() : str
+}
+
+class QRCode {
+    - id : int
+    - name : str
+    - slug : str
+    - destination_type : DestinationType
+    - destination_value : str
+    - is_active : bool
+    - total_scans : int
+    - customization : dict
+    - created_at : datetime
+    - updated_at : datetime
+    --
+    + resolve_destination() : str
+    + build_redirect_url() : str
+    + build_image_png() : bytes
+    + __str__() : str
+}
+
+class QRScanEvent {
+    - id : int
+    - scanned_at : datetime
+    - ip_address : str <<encrypted>>
+    - country : str
+    - city : str
+    - device_type : str
+    - os : str
+    - browser : str
+    - user_agent : str <<encrypted>>
+    --
+    + __str__() : str
+}
+
+class ShortUrl {
+    - id : int
+    - name : str
+    - slug : str
+    - original_url : str
+    - total_clicks : int
+    - is_active : bool
+    - created_at : datetime
+    - updated_at : datetime
+    --
+    + build_short_url() : str
+    + __str__() : str
+}
+
+class ShortUrlClickEvent {
+    - id : int
+    - clicked_at : datetime
+    - ip_address : str <<encrypted>>
+    - country : str
+    - city : str
+    - device_type : str
+    - os : str
+    - browser : str
+    - user_agent : str <<encrypted>>
+    --
+    + __str__() : str
+}
+
+' Relaciones principales de dominio
+User "1" --> "0..*" QRCode : crea / posee >
+User "1" --> "0..*" ShortUrl : crea / posee >
+
+QRCode "1" *-- "0..*" QRScanEvent : registra escaneos >
+ShortUrl "1" *-- "0..*" ShortUrlClickEvent : registra clics >
+
+' Relaciones con Enumeraciones
+User ..> Role : tiene
+QRCode ..> DestinationType : define destino
+
+@enduml

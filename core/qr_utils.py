@@ -30,7 +30,11 @@ def build_qr_png_bytes(content, customization=None):
         fill_color = customization.get("dot_color") or "black"
         back_color = customization.get("background_color") or "white"
 
-    image = qr.make_image(fill_color=fill_color, back_color=back_color)
+    try:
+        image = qr.make_image(fill_color=fill_color, back_color=back_color)
+    except (ValueError, TypeError):
+        image = qr.make_image(fill_color="black", back_color="white")
+
     buffer = BytesIO()
     image.save(buffer, format="PNG")
     return buffer.getvalue()
