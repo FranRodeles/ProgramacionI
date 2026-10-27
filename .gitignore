@@ -13,3 +13,4 @@ openspec/
 *.sqlite3
 db.sqlite3
 staticfiles/
+.vscode/
