@@ -1,0 +1,1047 @@
+{
+  "info": {
+    "_postman_id": "a8f9e4d2-7c31-4b5a-9d12-0f8e7c6b5a41",
+    "name": "QRedirect API — Colección Completa (con Tests y Variables)",
+    "description": "Colección oficial de QRedirect (Django + DRF) para probar todos los endpoints de la plataforma.\n\n### Orden recomendado de ejecución (Collection Runner o manual):\n1. **01 - Salud y Documentación**: Verificar `/api/health/` y esquema OpenAPI.\n2. **02 - Autenticación y Usuarios**: Ejecutar **Registrar Usuario** -> **Iniciar Sesión (Obtener JWT)** (guarda automáticamente `access_token` y `refresh_token`) -> **Ver Mi Perfil** -> **Actualizar Mi Perfil** -> **Refrescar Token JWT**.\n3. **03 - Códigos QR Dinámicos**: Ejecutar **Crear QR (Web)** (guarda automáticamente `qr_id` y `qr_slug`), probar variantes (WhatsApp, Email, Teléfono, Mapa, Texto), listar, filtrar, actualizar y descargar PNG.\n4. **04 - URLs Cortas**: Ejecutar **Crear URL Corta** (guarda automáticamente `shorturl_id` y `shorturl_slug`), listar, editar y consultar.\n5. **05 - Redirecciones Públicas y Analíticas**: Ejecutar **Redirigir QR (`/q/{{qr_slug}}/`)** y **Redirigir URL Corta (`/s/{{shorturl_slug}}/`)**, y luego consultar **Analíticas del QR** y **Analíticas de URL Corta** para ver los eventos registrados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "demo_qredirect",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "demo@qredirect.com",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "QRedirect2026!Segura",
+      "type": "string"
+    },
+    {
+      "key": "first_name",
+      "value": "Francisco",
+      "type": "string"
+    },
+    {
+      "key": "last_name",
+      "value": "Rodeles",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "qr_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "qr_slug",
+      "value": "menu-cafeteria-demo",
+      "type": "string"
+    },
+    {
+      "key": "shorturl_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "shorturl_slug",
+      "value": "promo-invierno-demo",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Salud y Documentación OpenAPI",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Servicio activo', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health", ""]
+            },
+            "description": "Verifica que el backend esté operativo."
+          }
+        },
+        {
+          "name": "Esquema OpenAPI 3.0 (YAML/JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/schema/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "schema", ""]
+            },
+            "description": "Descarga la especificación OpenAPI generada por drf-spectacular."
+          }
+        },
+        {
+          "name": "Swagger UI (Documentación Interactiva)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/docs/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "docs", ""]
+            },
+            "description": "Interfaz Swagger UI de la API."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Autenticación y Usuarios",
+      "item": [
+        {
+          "name": "1. Registrar Usuario (Público)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Usuario creado (201) o ya existente (400)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"first_name\": \"{{first_name}}\",\n  \"last_name\": \"{{last_name}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ""]
+            },
+            "description": "Registra un nuevo usuario con rol USER y valida la fortaleza de la contraseña."
+          }
+        },
+        {
+          "name": "2. Iniciar Sesión (Obtener JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login exitoso (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "if (data.access) {",
+                  "    pm.collectionVariables.set('access_token', data.access);",
+                  "}",
+                  "if (data.refresh) {",
+                  "    pm.collectionVariables.set('refresh_token', data.refresh);",
+                  "}",
+                  "pm.test('Tokens JWT guardados en variables de colección', function () {",
+                  "    pm.expect(data.access).to.be.a('string');",
+                  "    pm.expect(data.refresh).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", ""]
+            },
+            "description": "Obtiene los tokens `access` y `refresh` y los guarda automáticamente en las variables de la colección."
+          }
+        },
+        {
+          "name": "3. Ver Mi Perfil (/api/profile/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "if (data.id) {",
+                  "    pm.collectionVariables.set('user_id', data.id);",
+                  "}",
+                  "pm.test('Username coincide con el usuario autenticado', function () {",
+                  "    pm.expect(data.username).to.eql(pm.collectionVariables.get('username'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/profile/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "profile", ""]
+            },
+            "description": "Devuelve los datos del usuario autenticado."
+          }
+        },
+        {
+          "name": "4. Actualizar Mi Perfil (PATCH /api/profile/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK y rol protegido contra escalada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.first_name).to.eql('Francisco Actualizado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Francisco Actualizado\",\n  \"last_name\": \"Rodeles\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/profile/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "profile", ""]
+            },
+            "description": "Actualiza parcialmente el perfil del usuario autenticado (el campo `role` es de solo lectura)."
+          }
+        },
+        {
+          "name": "5. Refrescar Token JWT (Con Rotación)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Refresh exitoso (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const data = pm.response.json();",
+                  "if (data.access) {",
+                  "    pm.collectionVariables.set('access_token', data.access);",
+                  "}",
+                  "if (data.refresh) {",
+                  "    pm.collectionVariables.set('refresh_token', data.refresh);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "token", "refresh", ""]
+            },
+            "description": "Renueva el `access_token` y rota el `refresh_token` (invalidando el anterior en la blacklist)."
+          }
+        },
+        {
+          "name": "6. Obtener Usuario por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}", ""]
+            },
+            "description": "Consulta el detalle del usuario propio (o de cualquier usuario si el rol es ADMIN)."
+          }
+        },
+        {
+          "name": "7. Listar Todos los Usuarios (Solo ADMIN)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 si es ADMIN o 403 si es USER normal', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 403]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ""]
+            },
+            "description": "Endpoint protegido por permiso `IsAdmin`. Devuelve 403 Forbidden para usuarios con rol `USER`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Códigos QR Dinámicos (/api/qr/)",
+      "item": [
+        {
+          "name": "1. Crear QR Dinámico — Tipo WEB (Con Diseño)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('QR creado exitosamente (201) o slug ya existente (400)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('qr_id', data.id);",
+                  "    pm.collectionVariables.set('qr_slug', data.slug);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Menú Cafetería Central\",\n  \"slug\": \"{{qr_slug}}\",\n  \"destination_type\": \"WEB\",\n  \"destination_value\": \"https://ejemplo.com/menu-cafeteria\",\n  \"is_active\": true,\n  \"customization\": {\n    \"dot_style\": \"rounded\",\n    \"corner_style\": \"extra-rounded\",\n    \"dot_color\": \"#2d3a1c\",\n    \"background_color\": \"#ffffff\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/qr/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", ""]
+            },
+            "description": "Crea un código QR dinámico apuntando a una página web y guarda `qr_id` y `qr_slug` en variables."
+          }
+        },
+        {
+          "name": "2. Crear QR Dinámico — Tipo WHATSAPP (Slug Automático)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('QR de WhatsApp creado (201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.slug).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"WhatsApp Atención al Cliente\",\n  \"destination_type\": \"WHATSAPP\",\n  \"destination_value\": \"+54 9 261 555-1234\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/qr/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", ""]
+            },
+            "description": "Crea un QR de WhatsApp sin enviar `slug` para que el backend genere uno aleatorio único de 8 caracteres."
+          }
+        },
+        {
+          "name": "3. Crear QR Dinámico — Tipo EMAIL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('QR de Email creado (201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Contacto Comercial por Email\",\n  \"destination_type\": \"EMAIL\",\n  \"destination_value\": \"ventas@empresa.com\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/qr/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", ""]
+            }
+          }
+        },
+        {
+          "name": "4. Crear QR Dinámico — Tipo TEXT (Texto Plano)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('QR de Texto creado (201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Clave WiFi Invitados\",\n  \"destination_type\": \"TEXT\",\n  \"destination_value\": \"Red: QRedirect_Invitados | Clave: Bienvenidos2026\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/qr/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", ""]
+            }
+          }
+        },
+        {
+          "name": "5. Listar Mis Códigos QR (Con Búsqueda y Orden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK y respuesta paginada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('results');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/qr/?search=&ordering=-created_at",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", ""],
+              "query": [
+                { "key": "search", "value": "", "description": "Filtrar por nombre del QR" },
+                { "key": "ordering", "value": "-created_at", "description": "Opciones: created_at, -created_at, total_scans, -total_scans" }
+              ]
+            },
+            "description": "Lista los códigos QR del usuario autenticado (o todos si es ADMIN)."
+          }
+        },
+        {
+          "name": "6. Obtener Detalle de QR por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/qr/{{qr_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", "{{qr_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "7. Actualizar Destino o Diseño del QR (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('QR actualizado (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.destination_value).to.eql('https://ejemplo.com/menu-renovado-2026');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Menú Cafetería Central (Temporada 2026)\",\n  \"destination_value\": \"https://ejemplo.com/menu-renovado-2026\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/qr/{{qr_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", "{{qr_id}}", ""]
+            },
+            "description": "Modifica dinámicamente el destino del QR sin cambiar el `slug` ni tener que reimprimir el código."
+          }
+        },
+        {
+          "name": "8. Descargar Imagen PNG del QR (/api/qr/{id}/image/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK y Content-Type image/png', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.headers.get('Content-Type')).to.include('image/png');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/qr/{{qr_id}}/image/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", "{{qr_id}}", "image", ""]
+            },
+            "description": "Genera al vuelo la imagen PNG del código QR apuntando a `{{base_url}}/q/{{qr_slug}}/`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - URLs Cortas (/api/shorturl/)",
+      "item": [
+        {
+          "name": "1. Crear URL Corta (Con Slug Personalizado)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('URL corta creada (201) o slug existente (400)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    const data = pm.response.json();",
+                  "    pm.collectionVariables.set('shorturl_id', data.id);",
+                  "    pm.collectionVariables.set('shorturl_slug', data.slug);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Promoción Invierno 2026\",\n  \"slug\": \"{{shorturl_slug}}\",\n  \"original_url\": \"https://ejemplo.com/campana-invierno-descuentos\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", ""]
+            },
+            "description": "Crea una URL corta con slug personalizado y guarda `shorturl_id` y `shorturl_slug` en variables."
+          }
+        },
+        {
+          "name": "2. Crear URL Corta (Slug Automático y Normalización HTTPS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 y URL normalizada con https://', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.original_url).to.eql('https://universidad.edu.ar');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sitio Universidad\",\n  \"original_url\": \"universidad.edu.ar\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", ""]
+            }
+          }
+        },
+        {
+          "name": "3. Listar Mis URLs Cortas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/?search=&ordering=-created_at",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", ""],
+              "query": [
+                { "key": "search", "value": "" },
+                { "key": "ordering", "value": "-created_at", "description": "Opciones: created_at, -created_at, total_clicks, -total_clicks" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Obtener Detalle de URL Corta por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/{{shorturl_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", "{{shorturl_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "5. Actualizar URL Corta (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Promoción Invierno 2026 (Extendida)\",\n  \"original_url\": \"https://ejemplo.com/campana-invierno-extendida\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/{{shorturl_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", "{{shorturl_id}}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Redirecciones Públicas y Analíticas",
+      "item": [
+        {
+          "name": "1. Simular Escaneo de QR (GET /q/{{qr_slug}}/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Redirección exitosa (200 o 302)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "User-Agent", "value": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1" },
+              { "key": "CF-IPCountry", "value": "Argentina" },
+              { "key": "CF-IPCity", "value": "Mendoza" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/q/{{qr_slug}}/",
+              "host": ["{{base_url}}"],
+              "path": ["q", "{{qr_slug}}", ""]
+            },
+            "description": "Dispara la redirección HTTP 302 del QR, incrementa atómicamente `total_scans` y guarda el `QRScanEvent` con IP y User-Agent cifrados."
+          }
+        },
+        {
+          "name": "2. Simular Clic en URL Corta (GET /s/{{shorturl_slug}}/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Redirección exitosa (200 o 302)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          },
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36" },
+              { "key": "CF-IPCountry", "value": "Argentina" },
+              { "key": "CF-IPCity", "value": "Buenos Aires" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/s/{{shorturl_slug}}/",
+              "host": ["{{base_url}}"],
+              "path": ["s", "{{shorturl_slug}}", ""]
+            },
+            "description": "Dispara la redirección HTTP 302 de la URL corta, incrementa `total_clicks` y registra el `ShortUrlClickEvent`."
+          }
+        },
+        {
+          "name": "3. Ver Analíticas del QR (/api/qr/{{qr_id}}/analytics/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK y eventos sin exponer IP', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('total_scans');",
+                  "    pm.expect(data).to.have.property('events');",
+                  "    if (data.events.length > 0) {",
+                  "        pm.expect(data.events[0]).to.not.have.property('ip_address');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/qr/{{qr_id}}/analytics/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", "{{qr_id}}", "analytics", ""]
+            },
+            "description": "Obtiene el contador total de escaneos y los últimos 100 eventos anonimizados (país, ciudad, dispositivo, OS, navegador)."
+          }
+        },
+        {
+          "name": "4. Ver Analíticas de la URL Corta (/api/shorturl/{{shorturl_id}}/analytics/)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 OK y eventos sin exponer IP', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('total_clicks');",
+                  "    pm.expect(data).to.have.property('events');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/{{shorturl_id}}/analytics/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", "{{shorturl_id}}", "analytics", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Limpieza y Cierre de Sesión (Opcional)",
+      "item": [
+        {
+          "name": "1. Eliminar URL Corta (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Eliminado (204 No Content)', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shorturl/{{shorturl_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shorturl", "{{shorturl_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "2. Eliminar Código QR (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Eliminado (204 No Content)', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/qr/{{qr_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "qr", "{{qr_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "3. Cerrar Sesión / Invalidar Refresh Token (Logout)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Sesión cerrada (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/logout/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "logout", ""]
+            },
+            "description": "Envía el `refresh_token` a la lista negra (`token_blacklist`) para impedir nuevas renovaciones."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,243 @@
+@startuml QRedirect_Class_Diagram
+skinparam classAttributeIconSize 0
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam defaultFontName "Inter, Arial, sans-serif"
+
+title QRedirect — Diagrama de Clases, Dominio y Arquitectura Backend (Django + DRF)
+
+package "users (Gestión de Identidad y RBAC)" {
+
+    enum "User.Role" as UserRole {
+        ADMIN = "ADMIN"
+        USER = "USER"
+    }
+
+    class User <<AbstractUser>> {
+        + id : BigAutoField <<PK>>
+        + username : CharField(150) <<unique>>
+        + email : EmailField(254)
+        + password : CharField(128)
+        + first_name : CharField(150)
+        + last_name : CharField(150)
+        + role : CharField(10) = Role.USER
+        + is_active : BooleanField = True
+        + is_staff : BooleanField = False
+        + created_at : DateTimeField
+        + updated_at : DateTimeField
+        --
+        + __str__() : str
+        + set_password(raw_password : str) : void
+    }
+
+    class UserCreateSerializer <<ModelSerializer>> {
+        + password : CharField(write_only=True, min_length=8)
+        --
+        + validate_email(value : str) : str
+        + validate_password(value : str) : str
+        + create(validated_data : dict) : User
+    }
+
+    class UserSerializer <<ModelSerializer>> {
+        --
+        + validate_email(value : str) : str
+    }
+
+    class IsAdmin <<BasePermission>> {
+        + has_permission(request, view) : bool
+    }
+
+    class IsOwnerOrAdmin <<BasePermission>> {
+        + has_object_permission(request, view, obj) : bool
+    }
+
+    class UserViewSet <<ModelViewSet>> {
+        + get_permissions() : list
+        + get_throttles() : list
+        + get_serializer_class() : Serializer
+        + get_queryset() : QuerySet<User>
+        + profile(request) : Response <<@action GET, PATCH>>
+    }
+
+    class LogoutView <<APIView>> {
+        + post(request) : Response
+    }
+
+    class ThrottledTokenObtainPairView <<TokenObtainPairView>> {
+        + throttle_classes = [AuthRateThrottle]
+    }
+
+    class ThrottledTokenRefreshView <<TokenRefreshView>> {
+        + throttle_classes = [AuthRateThrottle]
+    }
+}
+
+package "core (Códigos QR Dinámicos, URLs Cortas y Analíticas)" {
+
+    enum DestinationType {
+        WEB = "WEB"
+        EMAIL = "EMAIL"
+        PHONE = "PHONE"
+        WHATSAPP = "WHATSAPP"
+        MAP = "MAP"
+        TEXT = "TEXT"
+    }
+
+    class EncryptedTextField <<TextField>> {
+        + get_prep_value(value : str) : str
+        + from_db_value(value : str, expression, connection) : str
+        + to_python(value : str) : str
+        --
+        ~ _get_fernet() : Fernet
+    }
+
+    class QRCode <<Model>> {
+        + id : BigAutoField <<PK>>
+        + user_id : ForeignKey(User) <<FK>>
+        + name : CharField(255)
+        + slug : SlugField(50) <<unique>>
+        + destination_type : CharField(10)
+        + destination_value : TextField
+        + is_active : BooleanField = True
+        + total_scans : IntegerField = 0
+        + customization : JSONField = {}
+        + created_at : DateTimeField
+        + updated_at : DateTimeField
+        --
+        + __str__() : str
+    }
+
+    class QRScanEvent <<Model>> {
+        + id : BigAutoField <<PK>>
+        + qr_code_id : ForeignKey(QRCode) <<FK>>
+        + scanned_at : DateTimeField
+        + ip_address : EncryptedTextField
+        + country : CharField(100)
+        + city : CharField(100)
+        + device_type : CharField(50)
+        + os : CharField(100)
+        + browser : CharField(100)
+        + user_agent : EncryptedTextField
+        --
+        + __str__() : str
+    }
+
+    class ShortUrl <<Model>> {
+        + id : BigAutoField <<PK>>
+        + user_id : ForeignKey(User) <<FK>>
+        + name : CharField(255)
+        + slug : SlugField(50) <<unique>>
+        + original_url : URLField(2000)
+        + total_clicks : IntegerField = 0
+        + is_active : BooleanField = True
+        + created_at : DateTimeField
+        + updated_at : DateTimeField
+        --
+        + __str__() : str
+    }
+
+    class ShortUrlClickEvent <<Model>> {
+        + id : BigAutoField <<PK>>
+        + short_url_id : ForeignKey(ShortUrl) <<FK>>
+        + clicked_at : DateTimeField
+        + ip_address : EncryptedTextField
+        + country : CharField(100)
+        + city : CharField(100)
+        + device_type : CharField(50)
+        + os : CharField(100)
+        + browser : CharField(100)
+        + user_agent : EncryptedTextField
+        --
+        + __str__() : str
+    }
+
+    class QRCodeSerializer <<ModelSerializer>> {
+        + user_username : ReadOnlyField
+        + qr_redirect_url : SerializerMethodField
+        + qr_image_url : SerializerMethodField
+        --
+        + validate_slug(value : str) : str
+        + validate_customization(value : dict) : dict
+        + validate(attrs : dict) : dict
+        + get_qr_redirect_url(obj : QRCode) : str
+        + get_qr_image_url(obj : QRCode) : str
+    }
+
+    class ShortUrlSerializer <<ModelSerializer>> {
+        + user_username : ReadOnlyField
+        + short_url : SerializerMethodField
+        --
+        + validate_original_url(value : str) : str
+        + validate_slug(value : str) : str
+        + get_short_url(obj : ShortUrl) : str
+    }
+
+    class QRCodeViewSet <<ModelViewSet>> {
+        + get_permissions() : list
+        + get_queryset() : QuerySet<QRCode>
+        + perform_create(serializer) : void
+        + perform_update(serializer) : void
+        + image(request, pk) : HttpResponse <<@action GET>>
+        + analytics(request, pk) : Response <<@action GET>>
+    }
+
+    class ShortUrlViewSet <<ModelViewSet>> {
+        + get_permissions() : list
+        + get_queryset() : QuerySet<ShortUrl>
+        + perform_create(serializer) : void
+        + perform_update(serializer) : void
+        + analytics(request, pk) : Response <<@action GET>>
+    }
+
+    class PublicRedirectViews <<Views>> {
+        + health(request) : Response <<GET /api/health/>>
+        + qr_redirect(request, slug : str) : HttpResponseRedirect <<GET /q/{slug}/>>
+        + shorturl_redirect(request, slug : str) : HttpResponseRedirect <<GET /s/{slug}/>>
+        --
+        ~ _track_request(request, obj, event_model, count_field, relation_name) : void
+        ~ _parse_client_info(request) : dict
+        ~ _get_client_ip(request) : str
+    }
+
+    class RateThrottles <<AnonRateThrottle>> {
+        + AuthRateThrottle (scope = "auth": 10/min)
+        + RegisterRateThrottle (scope = "register": 20/hour)
+        + RedirectRateThrottle (scope = "redirect": 120/min)
+    }
+}
+
+' Relaciones de Dominio (1:N)
+User "1" --> "0..*" QRCode : posee (qr_codes) >
+User "1" --> "0..*" ShortUrl : posee (short_urls) >
+QRCode "1" *-- "0..*" QRScanEvent : registra (scan_events) >
+ShortUrl "1" *-- "0..*" ShortUrlClickEvent : registra (click_events) >
+
+' Enums y Campos Cifrados
+User ..> UserRole : usa
+QRCode ..> DestinationType : usa
+QRScanEvent ..> EncryptedTextField : cifra ip_address y user_agent
+ShortUrlClickEvent ..> EncryptedTextField : cifra ip_address y user_agent
+
+' Relaciones de Capa de Aplicación (ViewSets, Serializers, Permisos)
+UserViewSet ..> UserSerializer : serializa
+UserViewSet ..> UserCreateSerializer : registra
+UserViewSet ..> IsAdmin : protege list/destroy
+UserViewSet ..> RateThrottles : limita registro
+
+QRCodeViewSet ..> QRCodeSerializer : serializa
+QRCodeViewSet ..> QRCode : gestiona
+QRCodeViewSet ..> IsOwnerOrAdmin : valida propiedad
+
+ShortUrlViewSet ..> ShortUrlSerializer : serializa
+ShortUrlViewSet ..> ShortUrl : gestiona
+ShortUrlViewSet ..> IsOwnerOrAdmin : valida propiedad
+
+PublicRedirectViews ..> QRCode : resuelve destino
+PublicRedirectViews ..> QRScanEvent : inserta evento + F('total_scans') + 1
+PublicRedirectViews ..> ShortUrl : resuelve URL
+PublicRedirectViews ..> ShortUrlClickEvent : inserta evento + F('total_clicks') + 1
+PublicRedirectViews ..> RateThrottles : aplica RedirectRateThrottle
+
+@enduml
