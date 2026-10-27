@@ -11,6 +11,7 @@ from core.serializers.shorturl import (
     ShortUrlAnalyticsResponseSerializer,
 )
 from core.utils import generate_unique_slug
+from users.models import User
 from users.permissions import IsOwnerOrAdmin
 
 
@@ -24,7 +25,7 @@ class ShortUrlViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == "ADMIN":
+        if user.role == User.Role.ADMIN:
             queryset = ShortUrl.objects.all()
         else:
             queryset = ShortUrl.objects.filter(user=user)
