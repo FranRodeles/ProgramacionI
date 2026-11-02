@@ -62,6 +62,10 @@ export async function patchShortUrl(id: number, data: Partial<ShortUrlData>): Pr
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
     if (errorData.detail) throw new Error(errorData.detail)
+    const errors = Object.values(errorData).flat()
+    if (errors.length > 0 && typeof errors[0] === 'string') {
+      throw new Error(errors.join(', '))
+    }
     throw new Error('Error al actualizar el enlace')
   }
   return res.json() as Promise<ShortUrlData>
