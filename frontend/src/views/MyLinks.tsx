@@ -32,6 +32,15 @@ export default function MyLinks() {
   const [analyticsData, setAnalyticsData] = useState<ResourceAnalytics | null>(null)
   const [analyticsType, setAnalyticsType] = useState<'QR' | 'Enlace' | null>(null)
 
+  // Edit modal state
+  const [editingQr, setEditingQr] = useState<QRCodeData | null>(null)
+  const [editingShort, setEditingShort] = useState<ShortUrlData | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState('WEB')
+  const [editValue, setEditValue] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+
   const loadData = async () => {
     setLoading(true)
     setError('')
@@ -93,14 +102,73 @@ export default function MyLinks() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && analyticsType) {
-        setAnalyticsType(null)
-        setAnalyticsData(null)
+      if (e.key === 'Escape') {
+        if (analyticsType) {
+          setAnalyticsType(null)
+          setAnalyticsData(null)
+        }
+        if (editingQr || editingShort) {
+          setEditingQr(null)
+          setEditingShort(null)
+          setEditError('')
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [analyticsType])
+  }, [analyticsType, editingQr, editingShort])
+
+  const openEditQr = (qr: QRCodeData) => {
+    setEditingShort(null)
+    setEditingQr(qr)
+    setEditName(qr.name)
+    setEditType(qr.destination_type)
+    setEditValue(qr.destination_value)
+    setEditError('')
+  }
+
+  const openEditShort = (short: ShortUrlData) => {
+    setEditingQr(null)
+    setEditingShort(short)
+    setEditName(short.name)
+    setEditValue(short.original_url)
+    setEditError('')
+  }
+
+  const closeEditModal = () => {
+    if (editSaving) return
+    setEditingQr(null)
+    setEditingShort(null)
+    setEditError('')
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditError('')
+    setEditSaving(true)
+    try {
+      if (editingQr) {
+        const updated = await patchQr(editingQr.id, {
+          name: editName.trim(),
+          destination_type: editType,
+          destination_value: editValue.trim(),
+        })
+        setQrs(qrs.map((item) => (item.id === editingQr.id ? updated : item)))
+        setEditingQr(null)
+      } else if (editingShort) {
+        const updated = await patchShortUrl(editingShort.id, {
+          name: editName.trim(),
+          original_url: editValue.trim(),
+        })
+        setShortUrls(shortUrls.map((item) => (item.id === editingShort.id ? updated : item)))
+        setEditingShort(null)
+      }
+    } catch (err: any) {
+      setEditError(err.message || 'Error al guardar los cambios')
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text)
@@ -467,6 +535,15 @@ export default function MyLinks() {
 
                             <button
                               type="button"
+                              onClick={() => openEditQr(qr)}
+                              className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                              style={{ borderRadius: '0.5rem', fontWeight: 600 }}
+                            >
+                              <i className="bi bi-pencil-square" /> Editar
+                            </button>
+
+                            <button
+                              type="button"
                               onClick={() => openQrAnalytics(qr)}
                               className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
                               style={{ borderRadius: '0.5rem', fontWeight: 600 }}
@@ -580,6 +657,15 @@ export default function MyLinks() {
                               <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>Clics</small>
                               <strong className="fs-6 text-primary">{short.total_clicks}</strong>
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={() => openEditShort(short)}
+                              className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                              style={{ borderRadius: '0.5rem', fontWeight: 600 }}
+                            >
+                              <i className="bi bi-pencil-square" /> Editar
+                            </button>
 
                             <button
                               type="button"
@@ -749,6 +835,127 @@ export default function MyLinks() {
                   Cerrar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {(editingQr || editingShort) && (
+        <div
+          className="modal show d-block"
+          tabIndex={-1}
+          style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1060 }}
+          role="dialog"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeEditModal()
+            }
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content rounded-4 border-0 shadow">
+              <form onSubmit={handleSaveEdit}>
+                <div className="modal-header border-bottom px-4 py-3">
+                  <div>
+                    <h5 className="modal-title fw-bold" style={{ color: '#2d3a1c' }}>
+                      <i className="bi bi-pencil-square me-2 text-success" />
+                      {editingQr ? 'Editar Código QR' : 'Editar Enlace Acortado'}
+                    </h5>
+                    <small className="text-muted font-monospace">
+                      /{editingQr ? `q/${editingQr.slug}` : `s/${editingShort?.slug}`}/
+                    </small>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={closeEditModal}
+                    disabled={editSaving}
+                    aria-label="Cerrar"
+                  />
+                </div>
+
+                <div className="modal-body p-4">
+                  {editError && <div className="alert alert-danger auth-alert">{editError}</div>}
+
+                  <div className="mb-3">
+                    <label className="form-label auth-label">
+                      {editingQr ? 'Nombre del QR' : 'Nombre del enlace'}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder={editingQr ? 'Ej: Mi web' : 'Ej: Campaña Verano'}
+                    />
+                  </div>
+
+                  {editingQr && (
+                    <div className="mb-3">
+                      <label className="form-label auth-label">Tipo de Destino</label>
+                      <select
+                        className="form-control"
+                        value={editType}
+                        onChange={(e) => setEditType(e.target.value)}
+                      >
+                        <option value="WEB">Sitio Web</option>
+                        <option value="EMAIL">Email</option>
+                        <option value="PHONE">Teléfono</option>
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="MAP">Mapa</option>
+                        <option value="TEXT">Texto</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="mb-2">
+                    <label className="form-label auth-label">
+                      {editingQr ? 'Valor del Destino' : 'URL Original de Destino'}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      placeholder={
+                        editingQr
+                          ? editType === 'EMAIL'
+                            ? 'contacto@ejemplo.com'
+                            : editType === 'PHONE' || editType === 'WHATSAPP'
+                              ? '+5492611234567'
+                              : editType === 'MAP'
+                                ? 'Universidad de Mendoza'
+                                : editType === 'TEXT'
+                                  ? 'Texto a mostrar al escanear'
+                                  : 'https://ejemplo.com'
+                          : 'https://ejemplo.com/pagina'
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="modal-footer border-top px-4 py-3">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm px-3"
+                    style={{ borderRadius: '0.5rem', fontWeight: 600 }}
+                    onClick={closeEditModal}
+                    disabled={editSaving}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn auth-submit btn-sm px-4"
+                    disabled={editSaving}
+                  >
+                    {editSaving ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
